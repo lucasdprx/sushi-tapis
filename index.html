@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Sushi Tapis — proto</title>
+<style>
+  html,body{margin:0;height:100%;background:#2b1d14;overflow:hidden;touch-action:none;font-family:system-ui,sans-serif}
+  canvas{display:block;margin:0 auto}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+const W = 400, H = 720;
+const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+function fit(){
+  const s = Math.min(innerWidth / W, innerHeight / H);
+  const dpr = devicePixelRatio || 1;
+  cv.style.width = W * s + 'px'; cv.style.height = H * s + 'px';
+  cv.width = W * s * dpr; cv.height = H * s * dpr;
+  ctx.setTransform(s * dpr, 0, 0, s * dpr, 0, 0);
+}
+addEventListener('resize', fit); fit();
+
+// ---------- types de sushis ----------
+const TYPES = [
+  {name:'maki',    col:'#d8323c', shape:'round'},
+  {name:'saumon',  col:'#f08a3c', shape:'nigiri'},
+  {name:'tamago',  col:'#f2c919', shape:'nigiri'},
+  {name:'kappa',   col:'#58b24a', shape:'round'},
+  {name:'onigiri', col:'#f4f1ea', shape:'tri'},
+  {name:'ebi',     col:'#f47a4a', shape:'ebi'},
+  {name:'tako',    col:'#c85a8a', shape:'tako'},
+  {name:'maguro',  col:'#b8202e', shape:'nigiri'},
+  {name:'ikura',   col:'#ff6a1a', shape:'gunkan'},
+];
+// ---------- images ----------
+const IMG = {};
+function loadImg(key, src){ const im = new Image(); im.onload = () => IMG[key] = im; im.src = src; }
+TYPES.forEach((_,t) => loadImg('sushi'+t, `assets/sushi${t}.png`));
+for (let k=0;k<4;k++) loadImg('client'+k, `assets/client${k}.png`);
+loadImg('chef', 'assets/chef0.png');
+loadImg('bg', 'assets/bg.png');
+loadImg('belt', 'assets/belt3.png');
+loadImg('column', 'assets/column.png');
+loadImg('button', 'assets/button.png');
+
+function drawSushi(t, x, y, r){
+  const im = IMG['sushi'+t];
+  if (im){ const s = r*2.7; ctx.drawImage(im, x-s/2, y-s/2, s, s); return; }
+  const T = TYPES[t];
+  const ink = '#3a2416';
+  ctx.save(); ctx.translate(x, y);
+  ctx.lineWidth = Math.max(1, r*0.14); ctx.strokeStyle = ink;
+  if (T.shape === 'round'){
+    ctx.fillStyle = '#1f3a24'; ctx.beginPath(); ctx.arc(0,0,r,0,7); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#fbfaf5'; ctx.beginPath(); ctx.arc(0,0,r*0.74,0,7); ctx.fill();
+    ctx.fillStyle = '#e4e0d4';
+    for (let k=0;k<6;k++){ const a=k*1.05; ctx.fillRect(Math.cos(a)*r*0.55-0.8, Math.sin(a)*r*0.55-0.8, 1.6, 1.6); }
+    ctx.fillStyle = T.col; ctx.beginPath(); ctx.arc(0,0,r*0.36,0,7); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.45)'; ctx.beginPath(); ctx.arc(-r*0.12,-r*0.12,r*0.12,0,7); ctx.fill();
+  } else if (T.shape === 'nigiri'){
+    ctx.fillStyle = '#fbfaf5'; roundRect(-r*0.95, -r*0.15, r*1.9, r*0.85, r*0.42); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = T.col; roundRect(-r*1.1, -r*0.75, r*2.2, r*0.78, r*0.38); ctx.fill(); ctx.stroke();
+    if (t === 2){ // tamago : bande d'algue
+      ctx.fillStyle = '#1f3a24'; ctx.fillRect(-r*0.22, -r*0.8, r*0.44, r*1.5);
+    } else {      // saumon : stries
+      ctx.strokeStyle = 'rgba(255,255,255,0.75)'; ctx.lineWidth = Math.max(1, r*0.12);
+      for (let k=-1;k<=1;k++){ ctx.beginPath(); ctx.moveTo(k*r*0.55-r*0.18, -r*0.68); ctx.lineTo(k*r*0.55+r*0.12, -r*0.08); ctx.stroke(); }
+    }
+    ctx.fillStyle = 'rgba(255,255,255,0.35)'; roundRect(-r*0.8, -r*0.68, r*0.9, r*0.18, r*0.09); ctx.fill();
+  } else if (T.shape === 'tri'){
+    ctx.fillStyle = T.col; ctx.beginPath();
+    ctx.moveTo(0,-r); ctx.quadraticCurveTo(r*0.25,-r*1.05, r*1.0,r*0.65); ctx.quadraticCurveTo(r*1.05,r*0.95, 0,r*0.9);
+    ctx.quadraticCurveTo(-r*1.05,r*0.95, -r*1.0,r*0.65); ctx.quadraticCurveTo(-r*0.25,-r*1.05, 0,-r); ctx.closePath();
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#1f3a24'; roundRect(-r*0.42, r*0.15, r*0.84, r*0.75, r*0.1); ctx.fill();
+  } else if (T.shape === 'ebi'){
+    ctx.fillStyle = '#fbfaf5'; roundRect(-r*0.95, -r*0.15, r*1.9, r*0.85, r*0.42); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = T.col; ctx.beginPath(); ctx.ellipse(0, -r*0.35, r*1.05, r*0.42, 0, 0, 7); ctx.fill(); ctx.stroke();
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = Math.max(1, r*0.13);
+    for (let k=-2;k<=2;k++){ ctx.beginPath(); ctx.moveTo(k*r*0.36, -r*0.7); ctx.lineTo(k*r*0.36, -r*0.02); ctx.stroke(); }
+    ctx.fillStyle = '#e0383e'; ctx.strokeStyle = ink; ctx.lineWidth = Math.max(1, r*0.14);
+    ctx.beginPath(); ctx.moveTo(r*0.95,-r*0.35); ctx.lineTo(r*1.35,-r*0.75); ctx.lineTo(r*1.35,r*0.05); ctx.closePath(); ctx.fill(); ctx.stroke();
+  } else if (T.shape === 'tako'){
+    ctx.fillStyle = '#fbfaf5'; roundRect(-r*0.95, -r*0.15, r*1.9, r*0.85, r*0.42); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#f4dde6'; roundRect(-r*1.1, -r*0.75, r*2.2, r*0.78, r*0.38); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = T.col; roundRect(-r*1.1, -r*0.75, r*2.2, r*0.35, r*0.2); ctx.fill();
+    ctx.fillStyle = '#f9eef2';
+    for (let k=-1;k<=1;k++){ ctx.beginPath(); ctx.arc(k*r*0.6, -r*0.25, r*0.16, 0, 7); ctx.fill(); }
+  } else if (T.shape === 'gunkan'){
+    ctx.fillStyle = '#1f3a24'; roundRect(-r*0.95, -r*0.55, r*1.9, r*1.35, r*0.35); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = T.col;
+    for (let k=0;k<7;k++){ const a = k*0.9, rr = k ? r*0.42 : 0; ctx.beginPath(); ctx.arc(Math.cos(a)*rr, -r*0.45+Math.sin(a)*rr*0.45, r*0.26, 0, 7); ctx.fill(); }
+    ctx.fillStyle = 'rgba(255,255,255,0.6)';
+    for (let k=0;k<7;k++){ const a = k*0.9, rr = k ? r*0.42 : 0; ctx.beginPath(); ctx.arc(Math.cos(a)*rr-r*0.07, -r*0.52+Math.sin(a)*rr*0.45, r*0.07, 0, 7); ctx.fill(); }
+  }
+  ctx.restore();
+}
+function roundRect(x,y,w,h,r){ ctx.beginPath(); ctx.roundRect(x,y,w,h,r); }
+
+// ---------- tapis roulant ----------
+const BELT = {x:42, y:92, w:316, h:212, r:64};
+const PERIM = 2*(BELT.w - 2*BELT.r) + 2*(BELT.h - 2*BELT.r) + 2*Math.PI*BELT.r;
+// position sur le tapis : s de 0 à PERIM, sens horaire, départ en haut à gauche après l'arrondi
+function beltPos(s){
+  s = ((s % PERIM) + PERIM) % PERIM;
+  const {x,y,w,h,r} = BELT, sw = w-2*r, sh = h-2*r, q = Math.PI*r/2;
+  const segs = [
+    ['L', x+r, y, 1, 0, sw],
+    ['A', x+w-r, y+r, -Math.PI/2, q],
+    ['L', x+w, y+r, 0, 1, sh],
+    ['A', x+w-r, y+h-r, 0, q],
+    ['L', x+w-r, y+h, -1, 0, sw],
+    ['A', x+r, y+h-r, Math.PI/2, q],
+    ['L', x, y+h-r, 0, -1, sh],
+    ['A', x+r, y+r, Math.PI, q],
+  ];
+  for (const g of segs){
+    const len = g[0]==='L' ? g[5] : g[4];
+    if (s <= len){
+      if (g[0]==='L') return {x:g[1]+g[3]*s, y:g[2]+g[4]*s};
+      const a = g[3] + s/r; return {x:g[1]+Math.cos(a)*r, y:g[2]+Math.sin(a)*r};
+    }
+    s -= len;
+  }
+  return {x:x+r, y};
+}
+const ENTRY_S = (BELT.w-2*BELT.r) + Math.PI*BELT.r/2*2 + (BELT.h-2*BELT.r) + (BELT.w-2*BELT.r)/2; // milieu du bas
+// comme dans la pub : la capacité = les places réelles du tapis ; plein = plus aucun trou
+const SPEED = 100;
+let CAPACITY = 36, SPACING = PERIM / CAPACITY;
+
+// places des clients (s sur le tapis)
+const SEATS = [
+  {s: 40},                                           // haut gauche
+  {s: (BELT.w-2*BELT.r) - 40},                       // haut droite
+  {s: ENTRY_S - 90},                                 // bas droite
+  {s: ENTRY_S + 90},                                 // bas gauche
+];
+
+// ---------- état ----------
+let level = 1, state;
+// Réglages de difficulté par niveau (~5 min au niveau 1)
+function levelConfig(n){
+  // réglé par simulation : taper au hasard ou vider les colonnes une par une perd,
+  // envoyer ce que les clients attendent (et savoir attendre) gagne
+  return {
+    customers: 48 + 4*n,                       // ~320 sushis au niveau 1
+    types: Math.min(TYPES.length, 6 + n),
+    bonus: 2,
+    early: 0.35 + 0.05*n,                      // part des paquets posés plus haut que leur client
+    reachMin: 3, reach: 6 + n,                 // de combien de clients ils remontent (min, écart)
+    palette: 4,                                // sortes demandées en ce moment ; elle change peu à peu
+    late: [0, 0, 12 + 2*n, 24 + 4*n, 36 + 6*n], // colonnes « en retard » : leur haut sert seulement à partir de ce client
+    capacity: Math.max(28, 33 - n),            // place sur le tapis (32 au niveau 1)
+  };
+}
+// Les colonnes sont construites à partir des commandes, comme dans la pub :
+// chaque commande est coupée en paquets de 2 à 4 sushis identiques, empilés dans les colonnes
+// en partant de la dernière commande. Le haut des colonnes = les premiers clients.
+// Prendre les bons paquets marche toujours ; vider une colonne d'un coup envoie
+// des paquets de clients encore loin dans la file, et le tapis se bouche.
+function newLevel(n){
+  const L = levelConfig(n);
+  // les clients proches veulent des sortes voisines ; la palette dérive au fil du niveau,
+  // donc un paquet remonté de loin est inutile pour les clients assis
+  const all = [...Array(L.types).keys()].sort(() => Math.random()-0.5);
+  const pal = all.slice(0, L.palette), out = all.slice(L.palette);
+  const queue = [];
+  let prev = -1;
+  for (let i=0;i<L.customers;i++){
+    if (i && Math.random() < 0.3 && out.length){
+      const a = Math.floor(Math.random()*pal.length), b = Math.floor(Math.random()*out.length);
+      [pal[a], out[b]] = [out[b], pal[a]];
+    }
+    let t; do { t = pal[Math.floor(Math.random()*pal.length)]; } while (t === prev);
+    queue.push({t, n: 4 + Math.floor(Math.random()*5)}); prev = t;
+  }
+  // paquets : certains remontent plus haut que leur client (pièges à ne pas envoyer trop tôt)
+  const packs = [];
+  queue.forEach((c,i) => {
+    // paquets de 2 à 4
+    const parts = []; let rem = c.n;
+    while (rem > 0){ let k = 2 + Math.floor(Math.random()*3); if (rem - k === 1 || k > rem) k = rem <= 4 ? rem : 2; parts.push(k); rem -= k; }
+    parts.forEach(k => packs.push({t:c.t, k, i, key: i - (Math.random() < L.early ? L.reachMin + Math.random()*L.reach : 0) + Math.random()*0.5}));
+  });
+  // répartition : chaque colonne ne reçoit des paquets qu'à partir de son retard,
+  // en gardant des colonnes de même hauteur ; puis chaque colonne est rangée par clé (haut = plus tôt)
+  const late = [...L.late].sort(() => Math.random()-0.5);
+  const target = packs.reduce((a,p)=>a+p.k,0) / 5;
+  const load = [0,0,0,0,0], byCol = [[],[],[],[],[]];
+  queue.forEach((_,i) => packs.filter(p => p.i === i).forEach(p => {
+    const ok = [0,1,2,3,4].filter(j => late[j] <= i);
+    // la colonne la plus en retard sur sa part (load / part restante)
+    const j = ok.reduce((b,j) => (load[j] - target) < (load[b] - target) - Math.random()*3 ? j : b, ok[0]);
+    load[j] += p.k; byCol[j].push(p);
+  }));
+  const cols = byCol.map(list => list.sort((a,b) => a.key - b.key).flatMap(p => Array(p.k).fill(p.t)));
+  CAPACITY = L.capacity; SPACING = PERIM / CAPACITY;
+  state = {
+    cols, queue, total: queue.length, served: 0,
+    seats: SEATS.map(()=>null), seatTimer: SEATS.map((_,i)=>0.3+i*0.4),
+    belt: [], pending: [], offset: 0, flying: [],
+    over: null, shake: 0, bonus: [L.bonus,L.bonus,L.bonus], lastTap: null, fx: [], leaving: [], pulse: 0, press: [0,0,0],
+  };
+}
+newLevel(level);
+
+// ---------- colonnes ----------
+const COL = {x:20, y:450, w:360, h:210, n:5, item:20};
+function colRect(i){ const cw = COL.w/COL.n; return {x:COL.x+i*cw, y:COL.y, w:cw, h:COL.h}; }
+
+cv.addEventListener('pointerdown', e => {
+  const b = cv.getBoundingClientRect();
+  const x = (e.clientX-b.left)/b.width*W, y = (e.clientY-b.top)/b.height*H;
+  if (state.over){ if (state.over==='win') level++; newLevel(level); return; }
+  const bi = BONUS.findIndex(o => Math.abs(x-o.x)<BS/2 && Math.abs(y-o.y)<BS/2);
+  if (bi >= 0){ useBonus(bi); return; }
+  if (y < COL.y-20) return;
+  const i = Math.floor((x-COL.x)/(COL.w/COL.n));
+  if (i<0 || i>=COL.n) return;
+  const col = state.cols[i];
+  if (!col.length){ state.shake = 0.2; sfx('bad'); return; }
+  if (state.belt.length + state.pending.length >= CAPACITY){ state.full = 0.4; sfx('bad'); return; } // tapis plein : on attend
+  const t = col.shift();
+  const r = colRect(i);
+  const p = {t, x:r.x+r.w/2, y:r.y+COL.item/2+6};
+  state.pending.push(p); state.lastTap = {col:i, item:p};
+  sfx('tap'); puff(p.x, p.y, '#fff', 6);
+});
+
+// ---------- bonus ----------
+const BS = 46;
+const BONUS = [
+  {x:140, y:690, icon:'undo'},     // annuler le dernier tap
+  {x:200, y:690, icon:'shuffle'},  // mélanger les colonnes
+  {x:260, y:690, icon:'return'},   // renvoyer les sushis inutiles dans les colonnes
+];
+function useBonus(i){
+  const S = state;
+  if (S.over || S.bonus[i] <= 0){ sfx('bad'); return; }
+  if (i === 0){
+    const L = S.lastTap; if (!L){ sfx('bad'); return; }
+    let k = S.pending.indexOf(L.item);
+    if (k >= 0) S.pending.splice(k,1);
+    else { k = S.belt.indexOf(L.item); if (k < 0){ sfx('bad'); return; } S.belt.splice(k,1); }
+    S.cols[L.col].unshift(L.item.t); S.lastTap = null;
+  } else if (i === 1){
+    const all = S.cols.flat();
+    for (let a=all.length-1;a>0;a--){ const b=Math.floor(Math.random()*(a+1)); [all[a],all[b]]=[all[b],all[a]]; }
+    const lens = S.cols.map(c=>c.length); let n = 0;
+    S.cols = lens.map(l => all.slice(n, n+=l));
+    S.lastTap = null;
+  } else {
+    const want = new Set(S.seats.filter(c=>c&&c.got<c.n).map(c=>c.t));
+    const back = S.belt.filter(it => !want.has(it.t));
+    if (!back.length){ sfx('bad'); return; }
+    S.belt = S.belt.filter(it => want.has(it.t));
+    back.forEach(it => { const c = S.cols.reduce((m,c)=>c.length<m.length?c:m); c.push(it.t); });
+    S.lastTap = null;
+  }
+  S.bonus[i]--; sfx('bonus'); S.press[i] = 1; burst(BONUS[i].x, BONUS[i].y, 'star', 10);
+}
+// icônes Lucide (licence ISC), grille 24x24
+const ICONS = {
+  undo: ['M9 14 4 9l5-5', 'M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11'],
+  shuffle: ['m18 14 4 4-4 4', 'm18 2 4 4-4 4', 'M2 18h1.973a4 4 0 0 0 3.3-1.7l5.454-7.6a4 4 0 0 1 3.3-1.7H22',
+            'M2 6h1.972a4 4 0 0 1 3.4 1.9l.3.5', 'M22 18h-6.041a4 4 0 0 1-3.3-1.8l-.359-.45'],
+  return: ['m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21', 'M22 21H7', 'm5 11 9 9'],
+};
+const ICON_PATHS = Object.fromEntries(Object.entries(ICONS).map(([k,v]) => [k, v.map(d => new Path2D(d))]));
+function drawBonusIcon(kind, x, y){
+  ctx.save(); ctx.translate(x-14, y-14); ctx.scale(28/24, 28/24);
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  ctx.strokeStyle = '#fff'; ctx.lineWidth = 5;   // liseré clair
+  ICON_PATHS[kind].forEach(p => ctx.stroke(p));
+  ctx.strokeStyle = '#5a2e12'; ctx.lineWidth = 2.6;
+  ICON_PATHS[kind].forEach(p => ctx.stroke(p));
+  ctx.restore();
+}
+
+// ---------- sons ----------
+let AC = null;
+function sfx(kind){
+  try { AC = AC || new AudioContext(); } catch(e){ return; }
+  const notes = {
+    tap:[[520,0.05]], take:[[880,0.06]], served:[[660,0.08],[990,0.12]],
+    bonus:[[440,0.07],[660,0.07],[880,0.1]], bad:[[160,0.12]],
+    win:[[523,0.12],[659,0.12],[784,0.12],[1046,0.25]], lose:[[392,0.18],[311,0.18],[233,0.35]],
+  }[kind];
+  let t0 = AC.currentTime;
+  notes.forEach(([f,d]) => {
+    const o = AC.createOscillator(), g = AC.createGain();
+    o.type = kind==='bad'||kind==='lose' ? 'square' : 'triangle'; o.frequency.value = f;
+    g.gain.setValueAtTime(0.15, t0); g.gain.exponentialRampToValueAtTime(0.001, t0+d);
+    o.connect(g).connect(AC.destination); o.start(t0); o.stop(t0+d); t0 += d*0.9;
+  });
+}
+
+// ---------- boucle ----------
+let last = performance.now();
+function tick(now){
+  const dt = Math.min(0.05, (now-last)/1000); last = now;
+  update(dt); updateFx(dt); draw();
+  requestAnimationFrame(tick);
+}
+function update(dt){
+  const S = state;
+  if (S.over) return;
+  S.shake = Math.max(0, S.shake-dt);
+  S.full = Math.max(0, (S.full||0)-dt);
+
+  // Chaque sushi avance seul sur le tapis, sans rattraper celui de devant.
+  // Tant que des sushis attendent d'être posés, ceux qui arrivent derrière l'entrée
+  // s'arrêtent avant elle et font la queue ; le reste du tapis continue.
+  moveBelt(S, dt);
+  while (S.pending.length && S.belt.length < CAPACITY) placeOnBelt(S, S.pending.shift());
+  S.belt.forEach(it => { if (it.vo) it.vo = Math.sign(it.vo)*Math.max(0, Math.abs(it.vo) - dt*250); });
+  S.belt.forEach(it => { if (it.k<1){ it.k = Math.min(1, it.k+dt*3.5); if (it.k>=1) it.land = 1; } if (it.land) it.land = Math.max(0, it.land-dt*4); });
+
+  // clients qui arrivent
+  S.seats.forEach((c,i) => {
+    if (c) return;
+    S.seatTimer[i] -= dt;
+    if (S.seatTimer[i] <= 0 && S.queue.length) S.seats[i] = {...S.queue.shift(), got:0, eat:0, age:0, hit:0, look: freeLook(S)};
+  });
+
+  // clients qui prennent
+  S.seats.forEach((c,i) => {
+    if (!c || c.got >= c.n) return;
+    const seatS = SEATS[i].s;
+    const idx = S.belt.findIndex(it => it.k>=1 && it.t===c.t && Math.abs(gap(it.s+S.offset, seatS)) < 6);
+    if (idx >= 0){
+      const it = S.belt.splice(idx,1)[0], p = beltPos(it.s+S.offset), q = seatPos(i);
+      S.flying.push({t:it.t, x:p.x, y:p.y, tx:q.x, ty:q.y, k:0});
+      c.got++; c.hit = 1; sfx('take');
+      if (S.lastTap && S.lastTap.item === it) S.lastTap = null;
+    }
+  });
+  S.flying.forEach(f => { f.k += dt*3; if (f.k >= 1) puff(f.tx, f.ty, '#ffd36a', 5); });
+  S.flying = S.flying.filter(f => f.k < 1);
+  S.seats.forEach(c => { if (c){ c.age += dt; c.hit = Math.max(0, c.hit-dt*4); } });
+
+  // clients servis qui partent
+  S.seats.forEach((c,i) => {
+    if (c && c.got >= c.n){ c.eat += dt; if (c.eat > 0.7){ const q = seatPos(i); S.leaving.push({look:c.look, i, k:0}); S.seats[i] = null; S.served++; S.pulse = 1; sfx('served'); S.seatTimer[i] = 0.9; burst(q.x, q.y-10, 'heart', 7); } }
+  });
+
+  const was = S.over;
+  endCheck(S);
+  if (!was && S.over){ sfx(S.over); if (S.over==='win') for (let k=0;k<4;k++) burst(W*(0.2+k*0.2), H*0.35, 'confetti', 30); }
+}
+function freeLook(S){
+  const used = new Set([...S.seats.filter(Boolean).map(c=>c.look%4), ...S.leaving.map(L=>L.look%4)]);
+  const free = [0,1,2,3].filter(k=>!used.has(k));
+  return free.length ? free[Math.floor(Math.random()*free.length)] : Math.floor(Math.random()*4);
+}
+function endCheck(S){
+  if (S.served >= S.total) S.over = 'win';
+  else if (S.belt.length + S.pending.length >= CAPACITY && !S.flying.length){
+    // tapis plein : perdu seulement si aucun client (assis ou sur le point d'arriver) ne peut prendre un sushi du tapis
+    const empty = S.seats.filter(c => !c).length;
+    const want = new Set([...S.seats.filter(c=>c&&c.got<c.n).map(c=>c.t), ...S.queue.slice(0, empty).map(c=>c.t)]);
+    if (!S.belt.some(it => want.has(it.t))) S.over = 'lose';
+  }
+  else if (!S.pending.length && S.cols.every(c=>!c.length) && S.belt.length && !S.flying.length){
+    // plus rien à jouer : vérifier si quelqu'un peut encore prendre
+    const want = new Set([...S.seats.filter(c=>c&&c.got<c.n).map(c=>c.t), ...S.queue.map(c=>c.t)]);
+    if (!S.belt.some(it=>want.has(it.t))) S.over = 'lose';
+  }
+}
+// Pose un sushi directement sur le tapis, à l'entrée. Si un sushi posé juste avant occupe
+// encore l'entrée, le nouveau se met derrière lui ; les sushis qui arrivent sur le tapis
+// reculent d'une place et font la queue derrière.
+function placeOnBelt(S, p){
+  let q = ENTRY_S;
+  for (let guard=0; guard<S.belt.length+1; guard++){
+    const b = S.belt.find(it => { const g = gap(it.s, q); return g >= 0 && g < SPACING; });
+    if (!b) break;
+    q = b.s - SPACING;
+  }
+  const behind = S.belt.map(it => ({it, g: gap(it.s, q)})).filter(o => o.g < 0).sort((a,b) => b.g - a.g);
+  let need = -SPACING;
+  for (const o of behind){
+    if (o.g <= need) break;
+    const shift = need - o.g;                 // négatif : recule
+    o.it.s += shift; o.it.vo = (o.it.vo||0) - shift;
+    need -= SPACING;
+  }
+  const it = {t:p.t, s:q, fx:p.x, fy:p.y, k:0};
+  S.belt.push(it);
+  if (S.lastTap && S.lastTap.item === p) S.lastTap.item = it;
+}
+function moveBelt(S, dt){
+  const n = S.belt.length;
+  if (!n) return;
+  const step = SPEED*dt, P = PERIM;
+  const w = S.belt.map(it => ((it.s % P) + P) % P);
+  const order = [...w.keys()].sort((a,b) => w[a] - w[b]);           // du plus en arrière au plus en avant
+  const ahead = k => order[(k+1) % n];
+  const gapAhead = k => n === 1 ? P : ((w[ahead(k)] - w[order[k]]) % P + P) % P;
+  // départ : le sushi qui a le plus de place devant lui avance librement
+  let start = 0; for (let k=1;k<n;k++) if (gapAhead(k) > gapAhead(start)) start = k;
+  const moved = new Array(n);
+  for (let m=0;m<n;m++){
+    const k = ((start - m) % n + n) % n, i = order[k];
+    let d = step;
+    if (m > 0 && n > 1){ const j = ahead(k); d = Math.min(d, Math.max(0, gapAhead(k) + moved[j] - SPACING)); }
+    moved[i] = d; S.belt[i].s = w[i] + d;
+  }
+}
+function gap(a,b){ let d = ((a-b)%PERIM+PERIM)%PERIM; if (d>PERIM/2) d-=PERIM; return d; }
+function seatPos(i){
+  const p = beltPos(SEATS[i].s);
+  return {x:p.x, y: p.y < BELT.y+BELT.h/2 ? p.y-38 : p.y+40};
+}
+
+// ---------- dessin ----------
+function draw(){
+  const S = state;
+  drawBackground();
+
+  // compteur clients servis
+  ctx.textAlign = 'center';
+  const ps = 1 + S.pulse*0.25;
+  ctx.save(); ctx.translate(W/2, 23); ctx.scale(ps, ps);
+  ctx.fillStyle = 'rgba(58,36,22,0.85)'; roundRect(-38, -15, 76, 30, 8); ctx.fill();
+  ctx.fillStyle = '#fff'; ctx.font = 'bold 18px system-ui';
+  ctx.fillText(`${S.served}/${S.total}`, 0, 6);
+  ctx.restore();
+
+  // clients (derrière le tapis pour ceux du haut)
+  S.seats.forEach((c,i) => { if (seatPos(i).y < BELT.y) drawCustomer(S, c, i); });
+
+  drawBelt(S);
+  drawKitchen(S);
+
+  // sushis sur le tapis
+  S.belt.forEach(it => {
+    const p = beltPos(it.s + (it.vo||0) + S.offset);
+    const k = easeOut(it.k), arc = it.k<1 ? Math.sin(Math.PI*it.k)*60 : 0;
+    const sq = it.land ? 1 + Math.sin(it.land*Math.PI)*0.35 : 1;
+    drawSushi(it.t, it.fx+(p.x-it.fx)*k, it.fy+(p.y-it.fy)*k - arc, SPACING/2.6*(it.k<1 ? 1.25 : sq));
+  });
+
+  S.seats.forEach((c,i) => { if (seatPos(i).y >= BELT.y) drawCustomer(S, c, i); });
+  // sushis qui attendent d'être posés : petite pile sur la planche du chef, au-dessus de l'entrée
+  S.leaving.forEach(L => drawLeaving(L));
+  S.seats.forEach((c,i) => drawBubble(c, i));
+  S.flying.forEach(f => drawSushi(f.t, f.x+(f.tx-f.x)*f.k, f.y+(f.ty-f.y)*f.k - Math.sin(Math.PI*f.k)*35, 9*(1+Math.sin(Math.PI*f.k)*0.4-f.k*0.5)));
+
+  drawFx();
+  if (window.DEBUG_PATH){ ctx.strokeStyle = 'lime'; ctx.lineWidth = 1; ctx.beginPath(); for (let s=0;s<=PERIM;s+=3){ const p = beltPos(s); s ? ctx.lineTo(p.x,p.y) : ctx.moveTo(p.x,p.y); } ctx.stroke(); }
+
+  // jauge du tapis
+  const fill = S.belt.length/CAPACITY, gw=320, gh=22, gx=40 + (fill>0.85 || S.full ? Math.sin(performance.now()/30)*(S.full ? 4 : 2) : 0), gy=418;
+  ctx.fillStyle = '#5a3a22'; roundRect(gx,gy,gw,gh,8); ctx.fill();
+  ctx.fillStyle = '#3a2416'; roundRect(gx+2,gy+2,gw-4,gh-4,6); ctx.fill();
+  if (fill>0){
+    ctx.fillStyle = fill < 0.6 ? '#5cbf3a' : fill < 0.85 ? '#e8a628' : '#e0383e';
+    roundRect(gx+3,gy+3,(gw-6)*fill,gh-6,5); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.25)'; ctx.fillRect(gx+6,gy+4,(gw-12)*fill,4);
+  }
+  ctx.fillStyle = '#fff'; ctx.font = 'bold 14px system-ui';
+  ctx.fillText(`${S.belt.length}/${CAPACITY}`, W/2, gy+16);
+
+  // colonnes
+  const sx = S.shake ? (Math.random()-0.5)*6 : 0;
+  for (let i=0;i<COL.n;i++){
+    const rc = colRect(i), cx = rc.x+rc.w/2+sx;
+    if (IMG.column) drawColumnTray(rc.x+3+sx, rc.y, rc.w-6, rc.h);
+    else {
+      ctx.fillStyle = '#7a4a28'; roundRect(rc.x+4+sx,rc.y,rc.w-8,rc.h,10); ctx.fill();
+      ctx.fillStyle = '#a8703f'; roundRect(rc.x+8+sx,rc.y+4,rc.w-16,rc.h-8,8); ctx.fill();
+    }
+    const col = S.cols[i], max = Math.floor((rc.h-8)/COL.item);
+    for (let j=Math.min(max,col.length)-1; j>=0; j--) drawSushi(col[j], cx, rc.y+COL.item/2+8+j*COL.item, 11);
+    if (col.length > max){
+      ctx.fillStyle = 'rgba(58,36,22,0.85)'; roundRect(cx-16, rc.y+rc.h-20, 32, 16, 5); ctx.fill();
+      ctx.fillStyle = '#fff'; ctx.font = 'bold 12px system-ui';
+      ctx.fillText('+'+(col.length-max), cx, rc.y+rc.h-8);
+    }
+  }
+
+  // bonus
+  BONUS.forEach((o0,i) => {
+    const on = S.bonus[i] > 0, pr = S.press[i];
+    const o = {x:o0.x, y:o0.y + Math.sin(pr*Math.PI)*4, icon:o0.icon};
+    ctx.globalAlpha = on ? 1 : 0.4;
+    if (IMG.button) ctx.drawImage(IMG.button, o.x-BS/2-3, o.y-BS/2-3, BS+6, BS+8);
+    else {
+      ctx.fillStyle = '#3a2416'; roundRect(o.x-BS/2, o.y-BS/2+3, BS, BS, 12); ctx.fill();
+      ctx.fillStyle = on ? '#ffd36a' : '#d8c8a8'; roundRect(o.x-BS/2, o.y-BS/2, BS, BS, 12); ctx.fill();
+    }
+    drawBonusIcon(o.icon, o.x, o.y);
+    if (on){ // utilisations restantes
+      ctx.fillStyle = '#d8323c'; ctx.beginPath(); ctx.arc(o.x+BS/2-4, o.y-BS/2+4, 9, 0, 7); ctx.fill();
+      ctx.fillStyle = '#fff'; ctx.font = 'bold 12px system-ui'; ctx.fillText(S.bonus[i], o.x+BS/2-4, o.y-BS/2+8);
+    }
+    ctx.globalAlpha = 1;
+  });
+
+  if (S.over){
+    ctx.fillStyle = 'rgba(30,18,10,0.75)'; ctx.fillRect(0,0,W,H);
+    ctx.fillStyle = '#fff'; ctx.font = 'bold 34px system-ui';
+    ctx.fillText(S.over==='win' ? 'Gagné !' : 'Tapis plein', W/2, H/2-10);
+    ctx.font = '18px system-ui';
+    ctx.fillText(S.over==='win' ? 'Touche pour le niveau suivant' : 'Touche pour rejouer', W/2, H/2+24);
+  }
+}
+
+// ---------- décor ----------
+// plateau en bois étiré en hauteur sans déformer ses bords (haut, milieu étiré, bas)
+function drawColumnTray(x, y, w, h){
+  const im = IMG.column, cap = 60, sc = w / im.width, capH = cap*sc;
+  ctx.drawImage(im, 0, 0, im.width, cap, x, y, w, capH);
+  ctx.drawImage(im, 0, cap, im.width, im.height-2*cap, x, y+capH, w, h-2*capH);
+  ctx.drawImage(im, 0, im.height-cap, im.width, cap, x, y+h-capH, w, capH);
+}
+function drawBackground(){
+  if (IMG.bg){ const s = Math.max(W/IMG.bg.width, H/IMG.bg.height); ctx.drawImage(IMG.bg, (W-IMG.bg.width*s)/2, 0, IMG.bg.width*s, IMG.bg.height*s);
+    ctx.fillStyle = 'rgba(160,100,50,0.35)'; ctx.fillRect(0, 395, W, H-395); return; }
+  // mur en lattes
+  const g = ctx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,'#f3c98e'); g.addColorStop(1,'#e2a964');
+  ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle = 'rgba(150,90,40,0.18)';
+  for (let x=0;x<W;x+=40) ctx.fillRect(x,0,3,H);
+  // comptoir sous le tapis
+  ctx.fillStyle = '#c4834a'; ctx.fillRect(0, 395, W, H-395);
+  ctx.fillStyle = '#a96a36';
+  for (let y=395;y<H;y+=34) ctx.fillRect(0,y,W,3);
+  ctx.fillStyle = '#8a5228'; ctx.fillRect(0, 392, W, 6);
+  // lanternes
+  [[22,6],[W-22,6]].forEach(([lx,ly]) => {
+    ctx.strokeStyle = '#3a2416'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(lx,0); ctx.lineTo(lx,ly+4); ctx.stroke();
+    ctx.fillStyle = '#d8323c'; ctx.beginPath(); ctx.ellipse(lx, ly+26, 15, 21, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = '#b02028'; for (let k=-1;k<=1;k++){ ctx.fillRect(lx+k*7-1, ly+8, 2, 36); }
+    ctx.fillStyle = '#3a2416'; ctx.fillRect(lx-8, ly+4, 16, 5); ctx.fillRect(lx-8, ly+45, 16, 5);
+  });
+}
+
+// zone centrale de la piste dans belt.png (pixels de l'image)
+const BELT_IMG = {x:70, y:40, w:517, h:273};   // milieu de la piste à lamelles, mesuré sur belt3.png
+function drawBelt(S){
+  const {x,y,w,h,r} = BELT;
+  if (IMG.belt){
+    const sx = w/BELT_IMG.w, sy = h/BELT_IMG.h;
+    ctx.fillStyle = 'rgba(60,30,10,0.3)'; roundRect(x-28,y-20,w+56,h+52,r+28); ctx.fill();
+    ctx.drawImage(IMG.belt, x-BELT_IMG.x*sx, y-BELT_IMG.y*sy, IMG.belt.width*sx, IMG.belt.height*sy);
+    const ep = beltPos(ENTRY_S);
+    ctx.fillStyle = '#ffd36a'; ctx.beginPath();
+    ctx.moveTo(ep.x-10, ep.y+30); ctx.lineTo(ep.x, ep.y+21); ctx.lineTo(ep.x+10, ep.y+30); ctx.closePath(); ctx.fill();
+    return;
+  }
+  // ombre + rebord rouge laqué
+  ctx.fillStyle = 'rgba(60,30,10,0.3)'; roundRect(x-24,y-18,w+48,h+48,r+24); ctx.fill();
+  ctx.fillStyle = '#9e1f28'; roundRect(x-24,y-24,w+48,h+48,r+24); ctx.fill();
+  ctx.fillStyle = '#d8323c'; roundRect(x-22,y-22,w+44,h+40,r+22); ctx.fill();
+  // piste métal
+  const g = ctx.createLinearGradient(0,y-16,0,y+h+16);
+  g.addColorStop(0,'#e4e8ec'); g.addColorStop(1,'#a9b1ba');
+  ctx.fillStyle = g; roundRect(x-15,y-15,w+30,h+30,r+15); ctx.fill();
+  // lattes du tapis qui défilent
+  ctx.strokeStyle = 'rgba(90,100,115,0.35)'; ctx.lineWidth = 2;
+  for (let s = (S.offset % 18); s < PERIM; s += 18){
+    const p = beltPos(s), q = beltPos(s+0.5), nx = -(q.y-p.y)*2, ny = (q.x-p.x)*2;
+    const L = Math.hypot(nx,ny) || 1;
+    ctx.beginPath(); ctx.moveTo(p.x-nx/L*13, p.y-ny/L*13); ctx.lineTo(p.x+nx/L*13, p.y+ny/L*13); ctx.stroke();
+  }
+  // rebord intérieur
+  ctx.fillStyle = '#7d8691'; roundRect(x+14,y+14,w-28,h-28,Math.max(4,r-14)); ctx.fill();
+  // entrée
+  const ep = beltPos(ENTRY_S);
+  ctx.fillStyle = '#ffd36a'; ctx.beginPath();
+  ctx.moveTo(ep.x-10, ep.y+26); ctx.lineTo(ep.x, ep.y+17); ctx.lineTo(ep.x+10, ep.y+26); ctx.closePath(); ctx.fill();
+}
+
+function drawKitchen(S){
+  const {x,y,w,h,r} = BELT;
+  const ix = x+20, iy = y+20, iw = w-40, ih = h-40;
+  // cuisine : mur bleu, carrelage
+  const g = ctx.createLinearGradient(0,iy,0,iy+ih);
+  g.addColorStop(0,'#4f6e96'); g.addColorStop(1,'#34506f');
+  if (!IMG.belt){ ctx.fillStyle = g; roundRect(ix,iy,iw,ih,Math.max(4,r-20)); ctx.fill(); }
+  ctx.save(); roundRect(ix,iy,iw,ih,Math.max(4,r-20)); ctx.clip();
+  if (!IMG.belt){
+    ctx.strokeStyle = 'rgba(255,255,255,0.08)'; ctx.lineWidth = 1;
+    for (let gx=ix; gx<ix+iw; gx+=22){ ctx.beginPath(); ctx.moveTo(gx,iy); ctx.lineTo(gx,iy+ih); ctx.stroke(); }
+    for (let gy=iy; gy<iy+ih; gy+=22){ ctx.beginPath(); ctx.moveTo(ix,gy); ctx.lineTo(ix+iw,gy); ctx.stroke(); }
+  }
+
+
+  // chef
+  const t = performance.now()/1000, cx = x+w/2;
+  if (IMG.chef){
+    const sz = 112, sway = Math.sin(t*2)*0.03, chop = Math.abs(Math.sin(t*9))*4;
+    ctx.save(); ctx.translate(cx, iy+ih-8 + chop*0.3); ctx.rotate(sway);
+    ctx.drawImage(IMG.chef, -sz/2, -sz+6, sz, sz);
+    ctx.restore();
+  }
+  // planche avec poissons (seulement sans l'image du tapis, qui a déjà sa cuisine)
+  if (!IMG.belt){
+  ctx.fillStyle = '#d9a86a'; roundRect(cx-60, iy+ih-18, 120, 22, 6); ctx.fill();
+  [['#f08a3c',-40],['#e0383e',-12],['#f08a3c',16],['#f2c919',40]].forEach(([c,dx]) => {
+    ctx.fillStyle = c; roundRect(cx+dx-11, iy+ih-14, 22, 9, 4); ctx.fill();
+  });
+  }
+  ctx.restore();
+}
+
+function drawCustomer(S, c, i){
+  const q = seatPos(i);
+  if (!c) return;
+  const im = IMG['client'+(c.look%4)];
+  if (im){
+    const pop = Math.min(1, c.age*4), sc = easeBack(pop);
+    const happy = c.got >= c.n, t = performance.now()/1000;
+    const breathe = 1 + Math.sin(t*3 + i)*0.025;
+    const hop = happy ? Math.abs(Math.sin(t*12))*5 : 0;
+    const sx = 1 + c.hit*0.18, sy = 1 - c.hit*0.14;
+    const base = q.y < BELT.y ? BELT.y-14 : q.y+30;
+    ctx.save(); ctx.translate(q.x, base - hop); ctx.scale(sc*sx, sc*sy*breathe);
+    if (happy) ctx.rotate(Math.sin(t*14)*0.08);
+    ctx.drawImage(im, -39, -78, 78, 78);
+    ctx.restore();
+    return;
+  }
+  const look = CUSTOMERS[c.look ?? i % CUSTOMERS.length];
+  const happy = c.got >= c.n, bob = happy ? Math.sin(performance.now()/80)*2 : 0;
+  const hx = q.x, hy = q.y + bob;
+  ctx.fillStyle = look.shirt; roundRect(hx-20, hy+12, 40, 26, 12); ctx.fill();        // épaules
+  ctx.fillStyle = look.hair;                                                         // cheveux arrière
+  if (look.long){ roundRect(hx-21, hy-14, 42, 36, 14); ctx.fill(); }
+  ctx.fillStyle = look.skin; ctx.beginPath(); ctx.arc(hx, hy, 17, 0, 7); ctx.fill();  // tête
+  ctx.fillStyle = look.hair; ctx.beginPath(); ctx.arc(hx, hy-5, 17, Math.PI*1.02, Math.PI*1.98); ctx.fill();
+  if (look.bun){ ctx.beginPath(); ctx.arc(hx, hy-21, 7, 0, 7); ctx.fill(); }
+  if (look.flower){ ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(hx+12, hy-12, 4, 0, 7); ctx.fill(); ctx.fillStyle = '#f2c919'; ctx.beginPath(); ctx.arc(hx+12, hy-12, 1.6, 0, 7); ctx.fill(); }
+  ctx.fillStyle = '#2b1d14';
+  if (happy){
+    ctx.strokeStyle = '#2b1d14'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(hx-6, hy+1, 3, Math.PI, 0); ctx.stroke();
+    ctx.beginPath(); ctx.arc(hx+6, hy+1, 3, Math.PI, 0); ctx.stroke();
+  } else { ctx.fillRect(hx-8, hy-2, 3, 4); ctx.fillRect(hx+5, hy-2, 3, 4); }
+  ctx.fillStyle = '#e8707a'; ctx.globalAlpha = 0.5;
+  ctx.beginPath(); ctx.arc(hx-10, hy+6, 3, 0, 7); ctx.arc(hx+10, hy+6, 3, 0, 7); ctx.fill(); ctx.globalAlpha = 1;
+  ctx.strokeStyle = '#2b1d14'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(hx, hy+6, 4, 0.2, Math.PI-0.2); ctx.stroke();
+}
+const CUSTOMERS = [
+  {skin:'#c98b5a', hair:'#2b1d14', shirt:'#e07a3a', long:true, flower:true},
+  {skin:'#8a5a3a', hair:'#1a120c', shirt:'#3a7ac8', bun:true},
+  {skin:'#f0c8a0', hair:'#7a4a22', shirt:'#58b24a'},
+  {skin:'#b07850', hair:'#3a2416', shirt:'#c84a78', long:true},
+  {skin:'#e8b48a', hair:'#c8a050', shirt:'#7a5ac8', bun:true},
+];
+
+function drawBubble(c, i){
+  if (!c) return;
+  const q = seatPos(i), side = q.x > W/2 ? 1 : -1;
+  const bx = q.x + side*58, by = q.y - 8;
+  const bs = easeBack(Math.min(1, Math.max(0, c.age*4-0.6)));
+  if (bs <= 0) return;
+  ctx.save(); ctx.translate(bx, by); ctx.scale(bs, bs); ctx.translate(-bx, -by);
+  ctx.fillStyle = 'rgba(58,36,22,0.25)'; roundRect(bx-24, by-13, 50, 32, 10); ctx.fill();
+  ctx.fillStyle = '#fff'; roundRect(bx-25, by-16, 50, 32, 10); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(bx-side*18, by+8); ctx.lineTo(bx-side*30, by+12); ctx.lineTo(bx-side*14, by+14); ctx.fill();
+  const rest = c.n - c.got;
+  if (rest > 0){
+    drawSushi(c.t, bx-9, by, 9);
+    ctx.fillStyle = '#3a2416'; ctx.font = 'bold 15px system-ui'; ctx.fillText(rest, bx+13, by+5);
+  } else {
+    ctx.strokeStyle = '#3a9a3a'; ctx.lineWidth = 4; ctx.lineCap = 'round'; ctx.beginPath();
+    ctx.moveTo(bx-9,by); ctx.lineTo(bx-2,by+7); ctx.lineTo(bx+10,by-7); ctx.stroke();
+  }
+  ctx.restore();
+}
+const easeOut = k => 1-(1-k)*(1-k);
+const easeBack = k => { const c = 1.9; return 1 + (c+1)*Math.pow(k-1,3) + c*Math.pow(k-1,2); };
+
+// ---------- effets ----------
+function puff(x, y, col, n){
+  for (let k=0;k<n;k++){ const a = Math.random()*7, v = 30+Math.random()*50;
+    state.fx.push({kind:'dot', x, y, vx:Math.cos(a)*v, vy:Math.sin(a)*v, life:0.4, max:0.4, col, r:2+Math.random()*2}); }
+}
+function burst(x, y, kind, n){
+  const cols = ['#e0383e','#ffd36a','#58b24a','#3a7ac8','#f08a3c','#fff'];
+  for (let k=0;k<n;k++){ const a = -Math.PI/2 + (Math.random()-0.5)*(kind==='confetti'?3:2), v = 60+Math.random()*(kind==='confetti'?220:90);
+    state.fx.push({kind, x, y, vx:Math.cos(a)*v, vy:Math.sin(a)*v, life:kind==='confetti'?2.2:1, max:kind==='confetti'?2.2:1,
+      col: cols[k%cols.length], r: kind==='heart'?7:4, rot:Math.random()*6, vr:(Math.random()-0.5)*10}); }
+}
+function updateFx(dt){
+  const S = state;
+  S.fx.forEach(f => { f.life -= dt; f.x += f.vx*dt; f.y += f.vy*dt;
+    f.vy += (f.kind==='heart' ? -20 : f.kind==='dot' ? 0 : 260)*dt; f.vx *= 0.98; if (f.rot !== undefined) f.rot += f.vr*dt; });
+  S.fx = S.fx.filter(f => f.life > 0);
+  S.leaving.forEach(L => L.k += dt*2.5);
+  S.leaving = S.leaving.filter(L => L.k < 1);
+  S.pulse = Math.max(0, S.pulse-dt*3);
+  S.press = S.press.map(p => Math.max(0, p-dt*4));
+}
+function drawFx(){
+  state.fx.forEach(f => {
+    ctx.globalAlpha = Math.min(1, f.life/f.max*2);
+    ctx.fillStyle = f.col;
+    if (f.kind === 'heart'){
+      ctx.fillStyle = '#e0383e'; const r = f.r;
+      ctx.beginPath(); ctx.moveTo(f.x, f.y+r*0.9);
+      ctx.bezierCurveTo(f.x-r*1.4, f.y-r*0.2, f.x-r*0.6, f.y-r*1.2, f.x, f.y-r*0.4);
+      ctx.bezierCurveTo(f.x+r*0.6, f.y-r*1.2, f.x+r*1.4, f.y-r*0.2, f.x, f.y+r*0.9); ctx.fill();
+    } else if (f.kind === 'star'){
+      ctx.save(); ctx.translate(f.x, f.y); ctx.rotate(f.rot); ctx.beginPath();
+      for (let k=0;k<10;k++){ const rr = k%2 ? f.r*0.45 : f.r*1.3, a = k*Math.PI/5; ctx.lineTo(Math.cos(a)*rr, Math.sin(a)*rr); }
+      ctx.fill(); ctx.restore();
+    } else if (f.kind === 'confetti'){
+      ctx.save(); ctx.translate(f.x, f.y); ctx.rotate(f.rot); ctx.fillRect(-4, -2.5, 8, 5); ctx.restore();
+    } else { ctx.beginPath(); ctx.arc(f.x, f.y, f.r, 0, 7); ctx.fill(); }
+  });
+  ctx.globalAlpha = 1;
+}
+function drawLeaving(L){
+  const im = IMG['client'+(L.look%4)], q = seatPos(L.i);
+  if (!im) return;
+  const k = L.k, up = q.y < BELT.y;
+  ctx.globalAlpha = 1-k;
+  const base = up ? BELT.y-14 : q.y+30;
+  ctx.drawImage(im, q.x-39, base-78 + (up ? -k*30 : k*30), 78, 78);
+  ctx.globalAlpha = 1;
+}
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>
