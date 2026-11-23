@@ -1,0 +1,379 @@
+<!doctype html>
+<html lang="fr" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sushi Tapis : écrans autour du jeu</title>
+<link rel="stylesheet" href="../common/mock.css">
+<style>
+/* écran de jeu : décor du projet */
+.st-scr { position:absolute; inset:0; background:#c4834a url(img/bg.png) center top / cover; color:#fff; font-family:system-ui, sans-serif; overflow:hidden; }
+.st-dim { position:absolute; inset:0; background:rgba(30,18,10,.55); }
+.st-btn { position:absolute; display:flex; align-items:center; justify-content:center; background:url(img/button.png) center / 100% 100%; color:#5a2e12; font:800 22px system-ui; text-shadow:0 1px 0 #fff6; }
+.st-wood { background:#a8703f; border:4px solid #5a3a22; border-radius:14px; box-shadow:0 4px 0 #3a2416; }
+.st-title { position:absolute; left:0; right:0; text-align:center; font:900 46px/1 system-ui; color:#ffd36a; -webkit-text-stroke:3px #5a2e12; paint-order:stroke; text-shadow:0 5px 0 #5a2e12; }
+.st-coins { position:absolute; top:12px; right:12px; display:flex; align-items:center; gap:6px; background:rgba(58,36,22,.85); border-radius:10px; padding:4px 10px 4px 6px; font:800 16px system-ui; }
+.st-coin { width:20px; height:20px; border-radius:50%; background:radial-gradient(circle at 35% 35%, #fff3a0, #f2b81c 60%, #b07a10); border:2px solid #8a5a10; flex:none; }
+.st-star { display:inline-block; width:22px; height:22px; background:#ffd36a; clip-path:polygon(50% 0,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%); }
+.st-star.off { background:rgba(255,255,255,.28); }
+.st-sushi { position:absolute; width:34px; height:34px; background-size:contain; background-repeat:no-repeat; }
+
+/* titre */
+.st-belt { position:absolute; left:-20px; right:-20px; height:46px; background:#9aa3ad; border-top:4px solid #d8323c; border-bottom:6px solid #9e1f28; }
+.st-belt .st-sushi { top:5px; animation:st-slide 6s linear infinite; }
+@keyframes st-slide { from { transform:translateX(-60px); } to { transform:translateX(420px); } }
+.st-pulse { animation:st-pulse 1.4s ease-in-out infinite; }
+@keyframes st-pulse { 50% { transform:scale(1.06); } }
+
+/* carte */
+.st-map { position:absolute; inset:0; overflow-y:auto; scrollbar-width:none; }
+.st-map::-webkit-scrollbar { display:none; }
+.st-node { position:absolute; width:58px; height:58px; margin:-29px 0 0 -29px; border-radius:50%; display:flex; align-items:center; justify-content:center; font:900 22px system-ui; color:#5a2e12; background:radial-gradient(circle at 40% 35%, #fff7c8, #ffd36a 60%, #c88a20); border:4px solid #5a2e12; box-shadow:0 4px 0 #3a2416; }
+.st-node.lock { background:#8a7a6a; color:#4a3a2a; }
+.st-node.cur { width:70px; height:70px; margin:-35px 0 0 -35px; animation:st-pulse 1.4s infinite; }
+.st-node .st-st { position:absolute; top:-18px; display:flex; gap:1px; }
+.st-node .st-st .st-star { width:15px; height:15px; }
+.st-road { position:absolute; left:0; top:0; }
+.st-zone { position:absolute; left:0; right:0; text-align:center; font:900 22px system-ui; color:#fff; text-shadow:0 2px 0 #3a2416; }
+.st-bar { position:absolute; left:0; right:0; top:0; height:56px; background:linear-gradient(#3a2416ee, #3a241600); z-index:2; }
+.st-card { position:absolute; left:16px; right:16px; height:150px; border-radius:16px; overflow:hidden; border:4px solid #5a3a22; box-shadow:0 5px 0 #3a2416; }
+.st-card .st-cimg { position:absolute; inset:0; background-size:cover; background-position:center; }
+.st-card .st-cname { position:absolute; left:12px; bottom:10px; font:900 22px system-ui; text-shadow:0 2px 0 #000a; }
+.st-card .st-cst { position:absolute; right:12px; bottom:12px; display:flex; align-items:center; gap:4px; font:800 16px system-ui; text-shadow:0 2px 0 #000a; }
+.st-card.lock .st-cimg { filter:grayscale(1) brightness(.5); }
+.st-grid { position:absolute; left:20px; right:20px; display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
+.st-grid .st-node { position:relative; margin:0; left:auto; top:auto; justify-self:center; }
+
+/* fin de niveau */
+.st-panel { position:absolute; left:26px; right:26px; top:150px; height:390px; }
+.st-big { display:flex; justify-content:center; gap:8px; margin-top:-36px; }
+.st-big .st-star { width:70px; height:70px; animation:st-pop 3.2s infinite both; }
+.st-big .st-star:nth-child(2) { width:86px; height:86px; margin-top:-14px; animation-delay:.25s; }
+.st-big .st-star:nth-child(3) { animation-delay:.5s; }
+@keyframes st-pop { 0%,62% { transform:scale(1); } 66%,70% { transform:scale(0); } 80% { transform:scale(1.3); } 88%,100% { transform:scale(1); } }
+.st-line { display:flex; justify-content:space-between; margin:8px 22px; font:800 18px system-ui; color:#3a2416; }
+.st-line b { display:flex; align-items:center; gap:6px; }
+
+/* boutique */
+.st-tabs { position:absolute; left:16px; right:16px; top:64px; display:flex; gap:8px; }
+.st-tab { flex:1; text-align:center; padding:9px 0; border-radius:12px 12px 0 0; background:#7a4a28; font:800 16px system-ui; cursor:pointer; }
+.st-tab.on { background:#a8703f; }
+.st-shelf { position:absolute; left:16px; right:16px; top:104px; bottom:16px; padding:12px; display:grid; grid-template-columns:1fr 1fr; gap:12px; align-content:start; border-radius:0 0 14px 14px; }
+.st-item { background:#f4e3c4; border-radius:12px; border:3px solid #5a3a22; height:150px; position:relative; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#3a2416; font:800 15px system-ui; }
+.st-item .st-ic { width:58px; height:58px; margin-bottom:6px; background-size:contain; background-repeat:no-repeat; background-position:center; }
+.st-price { position:absolute; bottom:-12px; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:4px; background:#5cbf3a; color:#fff; border:3px solid #2f6a1c; border-radius:10px; padding:2px 10px; font:900 15px system-ui; white-space:nowrap; }
+.st-own { position:absolute; bottom:-12px; left:50%; transform:translateX(-50%); background:#5a3a22; color:#ffd36a; border-radius:10px; padding:2px 10px; font:800 13px system-ui; }
+
+/* textes de règle */
+.st-rule { background:var(--card); border-radius:14px; padding:14px 16px; font-size:15px; }
+.st-rule table { width:100%; border-collapse:collapse; margin-top:8px; font-size:14px; }
+.st-rule td { padding:5px 4px; border-top:1px solid var(--line); }
+.st-rule td:last-child { text-align:right; white-space:nowrap; }
+</style>
+</head>
+<body>
+
+<header class="page">
+  <h1>Sushi Tapis : les écrans autour du jeu</h1>
+  <p><b>Référence.</b> La pub du jeu (ta vidéo du 26/10) : compteur de clients 42/52 avec coche verte, pièces d'or qui s'envolent quand un client est servi, boutons dorés aux coins arrondis, bois et rouge laqué. Pour la carte et la boutique, les jeux du même genre (Royal Match, Candy Crush Saga, Tasty Travels) : carte en chemin vertical qu'on remonte, 3 étoiles par niveau, pièces en haut à droite, boutique en cases avec un prix vert. Je les décris de mémoire, pas rouverts aujourd'hui.</p>
+  <p><b>Aujourd'hui.</b> Le jeu démarre directement au niveau 1. À la fin : « Gagné ! / Touche pour le niveau suivant » sur fond sombre. Rien n'est gardé si on ferme la page. Pas de pièces, pas d'étoiles, pas de musique.</p>
+  <p><b>La scène.</b> Tu ouvres le lien sur ton téléphone le soir. Tu as fini le niveau 6 hier avec 2 étoiles. Tu as 340 pièces et il t'en faut 400 pour la lanterne dorée.</p>
+  <p><b>Sans question.</b> Sauvegarde dans le navigateur (rien à installer, perdue seulement si tu vides les données du site). Musique d'ambiance jouée par le jeu lui-même, un bouton son sur la carte. Nouveaux restaurants tous les 10 niveaux, leurs images faites avec Gemini comme les sushis.</p>
+</header>
+
+<!-- ============ TITRE ============ -->
+<section>
+  <h2>L'écran titre</h2>
+  <p>Ce qu'on voit en ouvrant le lien.</p>
+  <div class="row">
+    <div class="variant" data-id="T1">
+      <div class="vhead"><span class="vid">T1</span><span class="vname">Logo et Jouer (par défaut)</span></div>
+      <p class="vdesc">Le restaurant flouté derrière, le logo, le chef, un gros bouton. Un toucher et on est sur la carte.</p>
+      <div class="phone"><div class="st-scr">
+        <div class="st-dim" style="background:rgba(30,18,10,.35)"></div>
+        <div class="st-title" style="top:120px">SUSHI<br>TAPIS</div>
+        <img src="img/chef0.png" style="position:absolute;left:80px;top:250px;width:200px">
+        <div class="st-btn st-pulse" style="left:80px;right:80px;top:510px;height:76px">JOUER</div>
+      </div></div>
+    </div>
+    <div class="variant" data-id="T2">
+      <div class="vhead"><span class="vid">T2</span><span class="vname">Le tapis qui tourne</span></div>
+      <p class="vdesc">Un vrai bout de tapis passe sous le logo avec les sushis du jeu. Toucher n'importe où pour commencer.</p>
+      <div class="phone"><div class="st-scr">
+        <div class="st-dim" style="background:rgba(30,18,10,.3)"></div>
+        <div class="st-title" style="top:150px">SUSHI<br>TAPIS</div>
+        <div class="st-belt" style="top:330px">
+          <div class="st-sushi" style="background-image:url(img/sushi0.png);animation-delay:0s"></div>
+          <div class="st-sushi" style="background-image:url(img/sushi1.png);animation-delay:-1s"></div>
+          <div class="st-sushi" style="background-image:url(img/sushi5.png);animation-delay:-2s"></div>
+          <div class="st-sushi" style="background-image:url(img/sushi2.png);animation-delay:-3s"></div>
+          <div class="st-sushi" style="background-image:url(img/sushi8.png);animation-delay:-4s"></div>
+          <div class="st-sushi" style="background-image:url(img/sushi3.png);animation-delay:-5s"></div>
+        </div>
+        <img src="img/client0.png" style="position:absolute;left:30px;top:410px;width:110px">
+        <img src="img/client1.png" style="position:absolute;right:30px;top:410px;width:110px">
+        <div class="st-pulse" style="position:absolute;left:0;right:0;top:600px;text-align:center;font:800 22px system-ui;text-shadow:0 2px 0 #000a">Touche pour jouer</div>
+      </div></div>
+    </div>
+    <div class="variant" data-id="T3">
+      <div class="vhead"><span class="vid">T3</span><span class="vname">Pas d'écran titre</span></div>
+      <p class="vdesc">On arrive sur la carte, le logo en haut de la carte. Un toucher de moins pour jouer.</p>
+      <div class="phone"><div class="st-scr">
+        <div class="st-dim" style="background:rgba(30,18,10,.25)"></div>
+        <div class="st-title" style="top:30px;font-size:34px">SUSHI TAPIS</div>
+        <div class="st-coins"><span class="st-coin"></span>340</div>
+        <div class="st-node" style="left:120px;top:640px">5<div class="st-st"><span class="st-star"></span><span class="st-star"></span><span class="st-star"></span></div></div>
+        <div class="st-node" style="left:230px;top:530px">6<div class="st-st"><span class="st-star"></span><span class="st-star"></span><span class="st-star off"></span></div></div>
+        <div class="st-node cur" style="left:140px;top:410px">7</div>
+        <div class="st-node lock" style="left:240px;top:290px">8</div>
+        <div class="st-node lock" style="left:130px;top:180px">9</div>
+      </div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CARTE ============ -->
+<section>
+  <h2>La carte des niveaux</h2>
+  <p>Même moment : niveau 6 fini avec 2 étoiles, niveau 7 à jouer, le 2e restaurant (Ramen) au niveau 11. Les cadres défilent au doigt.</p>
+  <div class="row">
+    <div class="variant" data-id="M1">
+      <div class="vhead"><span class="vid">M1</span><span class="vname">Chemin vertical (par défaut)</span></div>
+      <p class="vdesc">Un chemin qu'on remonte, un rond par niveau avec ses étoiles. Le décor change au passage d'un restaurant à l'autre.</p>
+      <div class="phone"><div class="st-scr" style="background:#c4834a">
+        <div class="st-bar"></div>
+        <div class="st-coins" style="z-index:3"><span class="st-coin"></span>340</div>
+        <div class="st-btn" style="z-index:3;left:12px;top:8px;width:46px;height:44px;font-size:13px">🛒</div>
+        <div class="st-map" id="st-m1"><div style="position:relative;height:1500px">
+          <div style="position:absolute;left:0;right:0;top:0;height:560px;background:url(img/bg.png) center/cover;filter:hue-rotate(-25deg) saturate(.8)"></div>
+          <div style="position:absolute;left:0;right:0;top:560px;height:940px;background:url(img/bg.png) center/cover"></div>
+          <div class="st-zone" style="top:575px;text-align:left;padding-left:20px">Sushi</div>
+          <div class="st-zone" style="top:470px;text-align:left;padding-left:20px">Ramen</div>
+          <svg class="st-road" width="346" height="1500"><path d="M120 1420 C 260 1330, 250 1250, 120 1180 S 0 1030, 200 960 S 330 820, 140 740 S 40 600, 210 520 S 320 380, 140 300 S 60 160, 200 90" fill="none" stroke="#f4e3c4" stroke-width="16" stroke-dasharray="2 22" stroke-linecap="round"/></svg>
+          <div class="st-node" style="left:120px;top:1420px">1<div class="st-st"><span class="st-star"></span><span class="st-star"></span><span class="st-star"></span></div></div>
+          <div class="st-node" style="left:225px;top:1300px">2<div class="st-st"><span class="st-star"></span><span class="st-star"></span><span class="st-star"></span></div></div>
+          <div class="st-node" style="left:120px;top:1180px">3<div class="st-st"><span class="st-star"></span><span class="st-star"></span><span class="st-star off"></span></div></div>
+          <div class="st-node" style="left:80px;top:1060px">4<div class="st-st"><span class="st-star"></span><span class="st-star"></span><span class="st-star"></span></div></div>
+          <div class="st-node" style="left:200px;top:960px">5<div class="st-st"><span class="st-star"></span><span class="st-star"></span><span class="st-star"></span></div></div>
+          <div class="st-node" style="left:250px;top:850px">6<div class="st-st"><span class="st-star"></span><span class="st-star"></span><span class="st-star off"></span></div></div>
+          <div class="st-node cur" style="left:140px;top:740px">7</div>
+          <div class="st-node lock" style="left:90px;top:650px">8</div>
+          <div class="st-node lock" style="left:210px;top:520px">11</div>
+          <div class="st-node lock" style="left:250px;top:410px">12</div>
+          <div class="st-node lock" style="left:140px;top:300px">13</div>
+        </div></div>
+      </div></div>
+    </div>
+    <div class="variant" data-id="M2">
+      <div class="vhead"><span class="vid">M2</span><span class="vname">Un restaurant, une carte</span></div>
+      <p class="vdesc">Liste des restaurants en grandes images. On touche le restaurant, puis le niveau dans sa grille. Le total d'étoiles sur chaque carte.</p>
+      <div class="phone"><div class="st-scr" style="background:#7a4a28">
+        <div class="st-coins"><span class="st-coin"></span>340</div>
+        <div style="position:absolute;left:16px;top:14px;font:900 20px system-ui">Restaurants</div>
+        <div class="st-card" style="top:60px"><div class="st-cimg" style="background-image:url(img/bg.png)"></div><div class="st-cname">Sushi</div><div class="st-cst"><span class="st-star"></span>14 / 30</div></div>
+        <div class="st-grid" style="top:228px">
+          <div class="st-node">1<div class="st-st"><span class="st-star"></span><span class="st-star"></span><span class="st-star"></span></div></div>
+          <div class="st-node">2<div class="st-st"><span class="st-star"></span><span class="st-star"></span><span class="st-star"></span></div></div>
+          <div class="st-node">3<div class="st-st"><span class="st-star"></span><span class="st-star"></span><span class="st-star off"></span></div></div>
+          <div class="st-node">4<div class="st-st"><span class="st-star"></span><span class="st-star"></span><span class="st-star"></span></div></div>
+          <div class="st-node">5<div class="st-st"><span class="st-star"></span><span class="st-star"></span><span class="st-star"></span></div></div>
+          <div class="st-node">6<div class="st-st"><span class="st-star"></span><span class="st-star"></span><span class="st-star off"></span></div></div>
+          <div class="st-node cur">7</div>
+          <div class="st-node lock">8</div>
+        </div>
+        <div class="st-card lock" style="top:430px"><div class="st-cimg" style="background-image:url(img/bg.png)"></div><div class="st-cname">Ramen</div><div class="st-cst">🔒 niveau 11</div></div>
+        <div class="st-card lock" style="top:596px"><div class="st-cimg" style="background-image:url(img/bg.png)"></div><div class="st-cname">Pâtisserie</div><div class="st-cst">🔒 niveau 21</div></div>
+      </div></div>
+    </div>
+    <div class="variant" data-id="M3">
+      <div class="vhead"><span class="vid">M3</span><span class="vname">Le restaurant en grand</span></div>
+      <p class="vdesc">Le restaurant actuel en plein écran, le gros bouton du prochain niveau. Les flèches passent au restaurant voisin.</p>
+      <div class="phone"><div class="st-scr">
+        <div class="st-dim" style="background:rgba(30,18,10,.3)"></div>
+        <div class="st-coins"><span class="st-coin"></span>340</div>
+        <div class="st-title" style="top:70px;font-size:38px">Sushi</div>
+        <div style="position:absolute;left:0;right:0;top:122px;text-align:center;font:800 18px system-ui;text-shadow:0 2px 0 #000a"><span class="st-star"></span> 14 / 30</div>
+        <img src="img/belt3.png" style="position:absolute;left:20px;top:190px;width:320px">
+        <img src="img/chef0.png" style="position:absolute;left:125px;top:215px;width:110px">
+        <div class="st-btn st-pulse" style="left:60px;right:60px;top:470px;height:80px;flex-direction:column;line-height:1.05">NIVEAU 7<span style="font-size:14px">Jouer</span></div>
+        <div class="st-btn" style="left:14px;top:340px;width:46px;height:48px">‹</div>
+        <div class="st-btn" style="right:14px;top:340px;width:46px;height:48px">›</div>
+        <div style="position:absolute;left:0;right:0;top:590px;display:flex;justify-content:center;gap:6px">
+          <span class="st-star"></span><span class="st-star"></span><span class="st-star"></span><span class="st-star"></span><span class="st-star"></span><span class="st-star"></span><span class="st-star off"></span><span class="st-star off"></span><span class="st-star off"></span><span class="st-star off"></span>
+        </div>
+        <div class="st-btn" style="left:120px;right:120px;top:640px;height:56px;font-size:18px">🛒 Boutique</div>
+      </div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ ETOILES ============ -->
+<section>
+  <h2>Ce qui donne les étoiles</h2>
+  <p>Gagner donne toujours au moins 1 étoile. Les chiffres : ta partie d'hier au niveau 6.</p>
+  <div class="row">
+    <div class="variant" data-id="S1">
+      <div class="vhead"><span class="vid">S1</span><span class="vname">Tapis jamais trop plein (par défaut)</span></div>
+      <p class="vdesc">On regarde le tapis le plus rempli de la partie. Récompense ce qu'on doit réfléchir : ne pas envoyer n'importe quoi.</p>
+      <div class="st-rule">Tapis au plus rempli : <b>26 / 32</b> → ★★☆
+        <table><tr><td>★★★</td><td>jamais plus de 60 % (19 / 32)</td></tr><tr><td>★★</td><td>jamais plus de 85 % (27 / 32)</td></tr><tr><td>★</td><td>gagné</td></tr></table></div>
+    </div>
+    <div class="variant" data-id="S2">
+      <div class="vhead"><span class="vid">S2</span><span class="vname">Sans bonus</span></div>
+      <p class="vdesc">Moins on utilise de bonus, plus d'étoiles. Simple à comprendre.</p>
+      <div class="st-rule">Bonus utilisés : <b>1</b> → ★★☆
+        <table><tr><td>★★★</td><td>aucun bonus</td></tr><tr><td>★★</td><td>1 ou 2 bonus</td></tr><tr><td>★</td><td>3 bonus ou plus</td></tr></table></div>
+    </div>
+    <div class="variant" data-id="S3">
+      <div class="vhead"><span class="vid">S3</span><span class="vname">Vite</span></div>
+      <p class="vdesc">Le temps du niveau. Pousse à aller vite, au risque de bourriner.</p>
+      <div class="st-rule">Temps : <b>4 min 12</b> → ★★☆
+        <table><tr><td>★★★</td><td>moins de 3 min 30</td></tr><tr><td>★★</td><td>moins de 5 min</td></tr><tr><td>★</td><td>gagné</td></tr></table></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PIECES ============ -->
+<section>
+  <h2>Quand on gagne des pièces</h2>
+  <p>Niveau 6 : 52 clients, 2 étoiles.</p>
+  <div class="row">
+    <div class="variant" data-id="P1">
+      <div class="vhead"><span class="vid">P1</span><span class="vname">À chaque client, comme la pub (par défaut)</span></div>
+      <p class="vdesc">Une pièce s'envole de chaque client servi vers le compteur. Plus le bonus des étoiles à la fin.</p>
+      <div class="st-rule">52 clients × 1 = <b>52</b><br>étoiles : 2 × 10 = <b>20</b><br>total <b>72 pièces</b>. Perdu : on garde les pièces des clients servis.</div>
+    </div>
+    <div class="variant" data-id="P2">
+      <div class="vhead"><span class="vid">P2</span><span class="vname">Seulement à la fin</span></div>
+      <p class="vdesc">Rien pendant la partie, une somme selon les étoiles. Perdre ne rapporte rien.</p>
+      <div class="st-rule">★ = 20, ★★ = 40, ★★★ = 70<br>total <b>40 pièces</b>. Perdu : 0.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FIN DE NIVEAU ============ -->
+<section>
+  <h2>La fin d'un niveau gagné</h2>
+  <p>Niveau 6, 2 étoiles, 72 pièces (les étoiles apparaissent une par une, en boucle).</p>
+  <div class="row">
+    <div class="variant" data-id="F1">
+      <div class="vhead"><span class="vid">F1</span><span class="vname">Panneau en bois (par défaut)</span></div>
+      <p class="vdesc">Le niveau reste visible derrière, assombri. Les étoiles tombent sur le panneau, puis les pièces se comptent.</p>
+      <div class="phone"><div class="st-scr">
+        <img src="img/belt3.png" style="position:absolute;left:0;top:70px;width:360px">
+        <div class="st-dim"></div>
+        <div class="st-panel st-wood">
+          <div class="st-big"><span class="st-star"></span><span class="st-star"></span><span class="st-star off"></span></div>
+          <div style="text-align:center;font:900 30px system-ui;color:#fff;text-shadow:0 3px 0 #5a2e12;margin:18px 0 22px">Niveau 6</div>
+          <div class="st-line"><span>Clients servis</span><b>52 / 52</b></div>
+          <div class="st-line"><span>Tapis au plus plein</span><b>26 / 32</b></div>
+          <div class="st-line" style="margin-top:22px;font-size:24px"><span>Gagné</span><b><span class="st-coin"></span>72</b></div>
+          <div class="st-btn" style="left:40px;right:40px;bottom:-34px;height:70px">SUIVANT</div>
+        </div>
+      </div></div>
+    </div>
+    <div class="variant" data-id="F2">
+      <div class="vhead"><span class="vid">F2</span><span class="vname">Les clients applaudissent</span></div>
+      <p class="vdesc">Plein écran : les 4 derniers clients autour, confettis, les étoiles en grand. Deux boutons : rejouer pour plus d'étoiles, ou suivant.</p>
+      <div class="phone"><div class="st-scr">
+        <div class="st-dim" style="background:rgba(30,18,10,.45)"></div>
+        <div class="st-title" style="top:80px;font-size:40px">BRAVO !</div>
+        <div class="st-big" style="position:absolute;left:0;right:0;top:200px;margin:0"><span class="st-star"></span><span class="st-star"></span><span class="st-star off"></span></div>
+        <img src="img/client0.png" style="position:absolute;left:10px;top:340px;width:110px">
+        <img src="img/client2.png" style="position:absolute;left:125px;top:320px;width:110px">
+        <img src="img/client3.png" style="position:absolute;right:10px;top:340px;width:110px">
+        <div style="position:absolute;left:0;right:0;top:480px;display:flex;justify-content:center;align-items:center;gap:8px;font:900 30px system-ui;text-shadow:0 3px 0 #5a2e12"><span class="st-coin" style="width:30px;height:30px"></span>+72</div>
+        <div class="st-btn" style="left:30px;width:140px;top:580px;height:64px;font-size:18px">↻ Rejouer</div>
+        <div class="st-btn" style="right:30px;width:140px;top:580px;height:64px;font-size:18px">Suivant</div>
+      </div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ BOUTIQUE ============ -->
+<section>
+  <h2>La boutique</h2>
+  <p>340 pièces. Les onglets se touchent.</p>
+  <div class="row">
+    <div class="variant" data-id="B1">
+      <div class="vhead"><span class="vid">B1</span><span class="vname">Deux onglets (par défaut)</span></div>
+      <p class="vdesc">Bonus d'un côté (gardés pour les prochains niveaux), déco de l'autre (change le restaurant pour toujours).</p>
+      <div class="phone"><div class="st-scr" style="background:#7a4a28">
+        <div style="position:absolute;left:16px;top:16px;font:900 24px system-ui">Boutique</div>
+        <div class="st-coins"><span class="st-coin"></span>340</div>
+        <div class="st-tabs" data-b1><div class="st-tab on" data-tab="bonus">Bonus</div><div class="st-tab" data-tab="deco">Déco</div></div>
+        <div class="st-shelf" style="background:#a8703f" data-shelf="bonus">
+          <div class="st-item"><div class="st-ic" style="background-image:url(img/button.png);position:relative"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#5a2e12" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="position:absolute;inset:0;margin:auto"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></div>Annuler ×3<div class="st-price"><span class="st-coin"></span>60</div></div>
+          <div class="st-item"><div class="st-ic" style="background-image:url(img/button.png);position:relative"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#5a2e12" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="position:absolute;inset:0;margin:auto"><path d="m18 14 4 4-4 4"/><path d="m18 2 4 4-4 4"/><path d="M2 18h2a4 4 0 0 0 3.3-1.7l5.4-7.6A4 4 0 0 1 16 7h6"/><path d="M2 6h2a4 4 0 0 1 3.4 1.9"/><path d="M22 18h-6a4 4 0 0 1-3.3-1.8"/></svg></div>Mélanger ×3<div class="st-price"><span class="st-coin"></span>90</div></div>
+          <div class="st-item"><div class="st-ic" style="background-image:url(img/button.png);position:relative"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#5a2e12" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="position:absolute;inset:0;margin:auto"><path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"/><path d="M22 21H7"/><path d="m5 11 9 9"/></svg></div>Renvoyer ×3<div class="st-price"><span class="st-coin"></span>120</div></div>
+          <div class="st-item"><div class="st-ic" style="background-image:url(img/sushi0.png)"></div>Tapis +4 places<div class="st-price"><span class="st-coin"></span>200</div></div>
+        </div>
+        <div class="st-shelf" style="background:#a8703f;display:none" data-shelf="deco">
+          <div class="st-item"><div class="st-ic" style="background:radial-gradient(#ffd36a,#d8323c);border-radius:50%"></div>Lanternes dorées<div class="st-price"><span class="st-coin"></span>400</div></div>
+          <div class="st-item"><div class="st-ic" style="background-image:url(img/chef0.png)"></div>Tenue du chef<div class="st-price"><span class="st-coin"></span>250</div></div>
+          <div class="st-item"><div class="st-ic" style="background-image:url(img/belt3.png)"></div>Tapis bois<div class="st-price"><span class="st-coin"></span>600</div></div>
+          <div class="st-item"><div class="st-ic" style="background-image:url(img/column.png)"></div>Colonnes laquées<div class="st-own">Acheté</div></div>
+        </div>
+      </div></div>
+    </div>
+    <div class="variant" data-id="B2">
+      <div class="vhead"><span class="vid">B2</span><span class="vname">La déco sur le restaurant</span></div>
+      <p class="vdesc">La boutique montre ton restaurant : on touche un objet en place (lanternes, tapis, chef) pour voir ses versions et l'acheter. Bonus dans une rangée en bas.</p>
+      <div class="phone"><div class="st-scr">
+        <div class="st-coins"><span class="st-coin"></span>340</div>
+        <div style="position:absolute;left:16px;top:16px;font:900 24px system-ui;text-shadow:0 2px 0 #000a">Ton restaurant</div>
+        <img src="img/belt3.png" style="position:absolute;left:20px;top:150px;width:320px">
+        <img src="img/chef0.png" style="position:absolute;left:125px;top:175px;width:110px">
+        <div style="position:absolute;left:28px;top:76px;width:44px;height:44px;border-radius:50%;border:3px dashed #ffd36a"></div>
+        <div style="position:absolute;left:80px;top:84px;font:800 14px system-ui;text-shadow:0 2px 0 #000">Lanternes <span class="st-coin" style="display:inline-block;vertical-align:-4px;width:16px;height:16px"></span>400</div>
+        <div style="position:absolute;left:150px;top:420px;width:60px;height:24px;border:3px dashed #ffd36a;border-radius:8px"></div>
+        <div style="position:absolute;left:0;right:0;bottom:0;height:200px;background:#7a4a28;border-top:4px solid #5a3a22">
+          <div style="margin:12px 16px;font:900 18px system-ui">Bonus</div>
+          <div style="display:flex;gap:12px;padding:0 16px">
+            <div class="st-item" style="flex:1;height:110px"><div class="st-ic" style="background-image:url(img/button.png);width:44px;height:44px;position:relative"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#5a2e12" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="position:absolute;inset:0;margin:auto"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></div>Annuler ×3<div class="st-price"><span class="st-coin"></span>60</div></div>
+            <div class="st-item" style="flex:1;height:110px"><div class="st-ic" style="background-image:url(img/button.png);width:44px;height:44px;position:relative"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#5a2e12" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="position:absolute;inset:0;margin:auto"><path d="m18 14 4 4-4 4"/><path d="m18 2 4 4-4 4"/><path d="M2 18h2a4 4 0 0 0 3.3-1.7l5.4-7.6A4 4 0 0 1 16 7h6"/><path d="M2 6h2a4 4 0 0 1 3.4 1.9"/><path d="M22 18h-6a4 4 0 0 1-3.3-1.8"/></svg></div>Mélanger ×3<div class="st-price"><span class="st-coin"></span>90</div></div>
+            <div class="st-item" style="flex:1;height:110px"><div class="st-ic" style="background-image:url(img/button.png);width:44px;height:44px;position:relative"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#5a2e12" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="position:absolute;inset:0;margin:auto"><path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"/><path d="M22 21H7"/><path d="m5 11 9 9"/></svg></div>Renvoyer ×3<div class="st-price"><span class="st-coin"></span>120</div></div>
+          </div>
+        </div>
+      </div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ RESTAURANTS ============ -->
+<section>
+  <h2>Les restaurants suivants</h2>
+  <p>Un nouveau tous les 10 niveaux, avec ses aliments, son chef et ses clients.</p>
+  <div class="row">
+    <div class="variant" data-id="R1">
+      <div class="vhead"><span class="vid">R1</span><span class="vname">Tour d'Asie (par défaut)</span></div>
+      <p class="vdesc">Sushi, Ramen (bols, gyoza, œufs), Dim sum (paniers vapeur), Curry thaï. Le même tapis va bien partout.</p>
+    </div>
+    <div class="variant" data-id="R2">
+      <div class="vhead"><span class="vid">R2</span><span class="vname">Tour du monde</span></div>
+      <p class="vdesc">Sushi, Pizzeria (parts de pizza), Pâtisserie (macarons, éclairs), Tacos. Plus de variété, les couleurs changent beaucoup d'un restaurant à l'autre.</p>
+    </div>
+  </div>
+</section>
+
+<footer class="send">
+  <label for="global">Autre chose à me dire ?</label>
+  <textarea id="global" placeholder="Un restaurant que tu veux, une idée de déco…"></textarea>
+  <button id="send">Envoyer mes retours à Claude</button>
+</footer>
+
+<script>
+(() => {
+  // onglets de la boutique B1
+  document.querySelectorAll('[data-b1] .st-tab').forEach(t => t.addEventListener('click', () => {
+    const box = t.closest('.st-scr');
+    box.querySelectorAll('.st-tab').forEach(x => x.classList.toggle('on', x === t));
+    box.querySelectorAll('[data-shelf]').forEach(s => s.style.display = s.dataset.shelf === t.dataset.tab ? 'grid' : 'none');
+  }));
+  // carte M1 : on arrive sur le niveau en cours
+  const m1 = document.getElementById('st-m1'); const go = () => { if (m1) m1.scrollTop = 520; }; go(); setTimeout(go, 200);
+})();
+</script>
+<script src="../common/mock.js"></script>
+</body>
+</html>

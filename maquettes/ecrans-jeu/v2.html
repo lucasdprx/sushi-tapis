@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="fr" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sushi Tapis : titre et étoiles (tour 2)</title>
+<link rel="stylesheet" href="../common/mock.css">
+<style>
+.st-scr { position:absolute; inset:0; background:#c4834a url(img/bg.png) center top / cover; color:#fff; font-family:system-ui, sans-serif; overflow:hidden; }
+.st-dim { position:absolute; inset:0; background:rgba(30,18,10,.35); }
+.st-btn { position:absolute; display:flex; align-items:center; justify-content:center; background:url(img/button.png) center / 100% 100%; color:#5a2e12; font:800 22px system-ui; }
+.st-title { position:absolute; left:0; right:0; text-align:center; font:900 46px/1 system-ui; color:#ffd36a; -webkit-text-stroke:3px #5a2e12; paint-order:stroke; text-shadow:0 5px 0 #5a2e12; }
+.st-node { position:absolute; width:58px; height:58px; margin:-29px 0 0 -29px; border-radius:50%; display:flex; align-items:center; justify-content:center; font:900 22px system-ui; color:#5a2e12; background:radial-gradient(circle at 40% 35%, #fff7c8, #ffd36a 60%, #c88a20); border:4px solid #5a2e12; box-shadow:0 4px 0 #3a2416; }
+.st-coins { position:absolute; top:12px; right:12px; display:flex; align-items:center; gap:6px; background:rgba(58,36,22,.85); border-radius:10px; padding:4px 10px 4px 6px; font:800 16px system-ui; }
+.st-coin { width:20px; height:20px; border-radius:50%; background:radial-gradient(circle at 35% 35%, #fff3a0, #f2b81c 60%, #b07a10); border:2px solid #8a5a10; }
+.st-steps { display:flex; gap:10px; align-items:center; margin:0 0 10px; color:var(--soft); font-size:13px; }
+.st-mini { width:110px; height:226px; position:relative; border-radius:14px; overflow:hidden; border:4px solid #0c0c0b; flex:none; }
+.st-mini .st-scr { transform:scale(.3056); transform-origin:0 0; width:360px; height:740px; }
+.st-rule { background:var(--card); border-radius:14px; padding:14px 16px; font-size:15px; }
+.st-rule table { width:100%; border-collapse:collapse; margin-top:8px; font-size:14px; }
+.st-rule td { padding:5px 4px; border-top:1px solid var(--line); }
+.st-rule td:last-child { text-align:right; }
+.st-star { display:inline-block; width:16px; height:16px; background:#ffd36a; clip-path:polygon(50% 0,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%); vertical-align:-2px; }
+.st-star.off { background:#7a6a5a; }
+</style>
+</head>
+<body>
+
+<header class="page">
+  <h1>Titre et étoiles (tour 2)</h1>
+  <p><b>Déjà choisi au tour 1 :</b> carte M2 (une carte par restaurant), pièces P1 (à chaque client), fin de niveau F2 (les clients applaudissent), boutique B1 (deux onglets), restaurants R2 (tour du monde). Je les code pendant ce tour.</p>
+  <p>Restent les deux sections où tu as mis deux 👍. <b>La scène :</b> tu ouvres le lien le soir, tu as fini le niveau 6 hier.</p>
+</header>
+
+<section>
+  <h2>L'écran titre</h2>
+  <p>Tu avais aimé T1 (logo et Jouer) et T3 (pas d'écran titre). Ce qu'on voit, dans l'ordre, en ouvrant le lien.</p>
+  <div class="row">
+    <div class="variant" data-id="T1">
+      <div class="vhead"><span class="vid">T1</span><span class="vname">Titre à chaque fois</span></div>
+      <p class="vdesc">Logo et Jouer à chaque ouverture, puis la carte.</p>
+      <div class="st-steps">
+        <div class="st-mini"><div class="st-scr"><div class="st-dim"></div><div class="st-title" style="top:120px">SUSHI<br>TAPIS</div><img src="img/chef0.png" style="position:absolute;left:80px;top:250px;width:200px"><div class="st-btn" style="left:80px;right:80px;top:510px;height:76px">JOUER</div></div></div>
+        →
+        <div class="st-mini"><div class="st-scr" style="background:#7a4a28"><div style="position:absolute;left:16px;top:14px;font:900 20px system-ui">Restaurants</div><div class="st-node" style="left:180px;top:300px">7</div></div></div>
+      </div>
+    </div>
+    <div class="variant" data-id="T3">
+      <div class="vhead"><span class="vid">T3</span><span class="vname">Jamais de titre</span></div>
+      <p class="vdesc">On arrive sur la carte, le logo en haut de la carte.</p>
+      <div class="st-steps">
+        <div class="st-mini"><div class="st-scr" style="background:#7a4a28"><div class="st-title" style="top:20px;font-size:34px">SUSHI TAPIS</div><div class="st-node" style="left:180px;top:300px">7</div></div></div>
+      </div>
+    </div>
+    <div class="variant" data-id="T4">
+      <div class="vhead"><span class="vid">T4</span><span class="vname">Titre la première fois seulement (par défaut)</span></div>
+      <p class="vdesc">Le titre accueille au tout premier lancement. Ensuite, on arrive directement sur la carte avec le logo en haut.</p>
+      <div class="st-steps">
+        <div class="st-mini"><div class="st-scr"><div class="st-dim"></div><div class="st-title" style="top:120px">SUSHI<br>TAPIS</div><img src="img/chef0.png" style="position:absolute;left:80px;top:250px;width:200px"><div class="st-btn" style="left:80px;right:80px;top:510px;height:76px">JOUER</div></div></div>
+        <span>1<sup>re</sup> fois<br>puis</span>
+        <div class="st-mini"><div class="st-scr" style="background:#7a4a28"><div class="st-title" style="top:20px;font-size:34px">SUSHI TAPIS</div><div class="st-node" style="left:180px;top:300px">7</div></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Ce qui donne les étoiles</h2>
+  <p>Tu avais aimé S2 (sans bonus) et S3 (vite). Ta partie d'hier au niveau 6 : 1 bonus utilisé, 4 min 12.</p>
+  <div class="row">
+    <div class="variant" data-id="S4">
+      <div class="vhead"><span class="vid">S4</span><span class="vname">Une étoile par objectif (par défaut)</span></div>
+      <p class="vdesc">Les deux à la fois : chaque étoile a sa condition, affichée à la fin du niveau.</p>
+      <div class="st-rule">
+        <table>
+          <tr><td><span class="st-star"></span> Gagner le niveau</td><td>✓</td></tr>
+          <tr><td><span class="st-star off"></span> Aucun bonus utilisé</td><td>1 bonus ✗</td></tr>
+          <tr><td><span class="st-star"></span> Moins de 5 min</td><td>4 min 12 ✓</td></tr>
+        </table>
+        <div style="margin-top:8px">→ <b>2 étoiles</b></div>
+      </div>
+    </div>
+    <div class="variant" data-id="S2">
+      <div class="vhead"><span class="vid">S2</span><span class="vname">Sans bonus seulement</span></div>
+      <p class="vdesc">Aucun bonus ★★★, 1 ou 2 bonus ★★, plus ★.</p>
+      <div class="st-rule">1 bonus → <b>2 étoiles</b></div>
+    </div>
+    <div class="variant" data-id="S3">
+      <div class="vhead"><span class="vid">S3</span><span class="vname">Vite seulement</span></div>
+      <p class="vdesc">Moins de 3 min 30 ★★★, moins de 5 min ★★, plus ★.</p>
+      <div class="st-rule">4 min 12 → <b>2 étoiles</b></div>
+    </div>
+  </div>
+</section>
+
+<footer class="send">
+  <label for="global">Autre chose à me dire ?</label>
+  <textarea id="global" placeholder="…"></textarea>
+  <button id="send">Envoyer mes retours à Claude</button>
+</footer>
+<script src="../common/mock.js"></script>
+</body>
+</html>

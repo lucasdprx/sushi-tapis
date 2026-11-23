@@ -86,8 +86,8 @@ loadImg('column', 'assets/column.png');
 loadImg('button', 'assets/button.png');
 
 function drawSushi(t, x, y, r){
-  const im = IMG['sushi'+t];
-  if (im){ const s = r*2.7; drawSprite('sushi'+t, x-s/2, y-s/2, s, s); return; }
+  const key = foodKey(t), im = IMG[key];
+  if (im){ const s = r*2.7; drawSprite(key, x-s/2, y-s/2, s, s); return; }
   const T = TYPES[t];
   const ink = '#3a2416';
   ctx.save(); ctx.translate(x, y);
@@ -242,10 +242,10 @@ function newLevel(n){
     cols, queue, total: queue.length, served: 0,
     seats: SEATS.map(()=>null), seatTimer: SEATS.map((_,i)=>0.3+i*0.4),
     belt: [], pending: [], offset: 0, flying: [],
-    over: null, shake: 0, bonus: [L.bonus,L.bonus,L.bonus], lastTap: null, fx: [], leaving: [], pulse: 0, press: [0,0,0],
+    over: null, shake: 0, bonus: [0,1,2].map(i => L.bonus + SAVE.inv[i]), free: [L.bonus,L.bonus,L.bonus], t0: performance.now(), coins: 0, lastTap: null, fx: [], leaving: [], pulse: 0, press: [0,0,0],
   };
 }
-newLevel(level);
+// le premier niveau est lancé par menus.js (sauvegarde chargée)
 
 // ---------- colonnes ----------
 const COL = {x:20, y:450, w:360, h:210, n:5, item:20};
@@ -254,7 +254,8 @@ function colRect(i){ const cw = COL.w/COL.n; return {x:COL.x+i*cw, y:COL.y, w:cw
 cv.addEventListener('pointerdown', e => {
   const b = cv.getBoundingClientRect();
   const x = (e.clientX-b.left)/b.width*W, y = (e.clientY-b.top)/b.height*H;
-  if (state.over){ if (state.over==='win') level++; newLevel(level); return; }
+  if (MENU.scene !== 'game'){ menuTap(x, y); return; }
+  if (state.over) return;
   const bi = BONUS.findIndex(o => Math.abs(x-o.x)<BS/2 && Math.abs(y-o.y)<BS/2);
   if (bi >= 0){ useBonus(bi); return; }
   if (y < COL.y-20) return;
@@ -300,7 +301,8 @@ function useBonus(i){
     back.forEach(it => { const c = S.cols.reduce((m,c)=>c.length<m.length?c:m); c.push(it.t); });
     S.lastTap = null;
   }
-  S.bonus[i]--; sfx('bonus'); S.press[i] = 1; burst(BONUS[i].x, BONUS[i].y, 'star', 10);
+  S.bonus[i]--; S.bonusUsed = (S.bonusUsed||0) + 1; if (S.free[i] > 0) S.free[i]--; else { SAVE.inv[i]--; saveGame(); }
+  sfx('bonus'); S.press[i] = 1; burst(BONUS[i].x, BONUS[i].y, 'star', 10);
 }
 // icônes Lucide (licence ISC), grille 24x24
 const ICONS = {
@@ -344,7 +346,8 @@ const FPS = {v:60, on:false};
 addEventListener('keydown', e => { if (e.key === 'f' || e.key === 'F') FPS.on = !FPS.on; });
 function tick(now){
   const dt = Math.min(0.05, (now-last)/1000); last = now;
-  update(dt); updateFx(dt); draw();
+  if (MENU.scene === 'game'){ update(dt); updateFx(dt); draw(); if (state.over) levelOver(); }
+  else { updateFx(dt); drawMenu(dt); }
   // compteur d'images par seconde : touche F
   FPS.v = FPS.v*0.95 + (1/Math.max(1e-3,(now - (FPS.last||now)) / 1000 || 60))*0.05; FPS.last = now;
   if (FPS.on){ ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(4,4,58,20); ctx.fillStyle = '#7f7'; ctx.font = 'bold 13px system-ui'; ctx.textAlign = 'left'; ctx.fillText(Math.round(FPS.v)+' i/s', 9, 19); ctx.textAlign = 'center'; }
@@ -389,7 +392,7 @@ function update(dt){
 
   // clients servis qui partent
   S.seats.forEach((c,i) => {
-    if (c && c.got >= c.n){ c.eat += dt; if (c.eat > 0.7){ const q = seatPos(i); S.leaving.push({look:c.look, i, k:0}); S.seats[i] = null; S.served++; S.pulse = 1; sfx('served'); S.seatTimer[i] = 0.9; burst(q.x, q.y-10, 'heart', 7); } }
+    if (c && c.got >= c.n){ c.eat += dt; if (c.eat > 0.7){ const q = seatPos(i); S.leaving.push({look:c.look, i, k:0}); S.seats[i] = null; S.served++; S.pulse = 1; sfx('served'); onServed(q); S.seatTimer[i] = 0.9; burst(q.x, q.y-10, 'heart', 7); } }
   });
 
   const was = S.over;
@@ -479,6 +482,8 @@ function draw(){
   ctx.fillText(`${S.served}/${S.total}`, 0, 6);
   ctx.restore();
 
+  drawCoinsHud(S);
+
   // clients (derrière le tapis pour ceux du haut)
   S.seats.forEach((c,i) => { if (seatPos(i).y < BELT.y) drawCustomer(S, c, i); });
 
@@ -561,13 +566,14 @@ function draw(){
 // ---------- décor ----------
 // plateau en bois étiré en hauteur sans déformer ses bords (haut, milieu étiré, bas)
 function drawColumnTray(x, y, w, h){
-  const im = IMG.column, cap = 60, sc = w / im.width, capH = cap*sc;
+  const im = IMG[decoKey('column')], cap = 60, sc = w / im.width, capH = cap*sc;
   ctx.drawImage(im, 0, 0, im.width, cap, x, y, w, capH);
   ctx.drawImage(im, 0, cap, im.width, im.height-2*cap, x, y+capH, w, h-2*capH);
   ctx.drawImage(im, 0, im.height-cap, im.width, cap, x, y+h-capH, w, capH);
 }
 function drawBackground(){
-  if (IMG.bg){ const s = Math.max(W/IMG.bg.width, H/IMG.bg.height); ctx.drawImage(IMG.bg, (W-IMG.bg.width*s)/2, 0, IMG.bg.width*s, IMG.bg.height*s);
+  const bgIm = IMG[decoKey('bg')];
+  if (bgIm){ const s = Math.max(W/bgIm.width, H/bgIm.height); ctx.drawImage(bgIm, (W-bgIm.width*s)/2, 0, bgIm.width*s, bgIm.height*s);
     ctx.fillStyle = 'rgba(160,100,50,0.35)'; ctx.fillRect(0, 395, W, H-395); return; }
   // mur en lattes
   const g = ctx.createLinearGradient(0,0,0,H);
@@ -597,7 +603,7 @@ function drawBelt(S){
   if (IMG.belt){
     const sx = w/BELT_IMG.w, sy = h/BELT_IMG.h;
     ctx.fillStyle = 'rgba(60,30,10,0.3)'; roundRect(x-28,y-20,w+56,h+52,r+28); ctx.fill();
-    ctx.drawImage(IMG.belt, x-BELT_IMG.x*sx, y-BELT_IMG.y*sy, IMG.belt.width*sx, IMG.belt.height*sy);
+    const bIm = IMG[decoKey('belt')]; ctx.drawImage(bIm, x-BELT_IMG.x*sx, y-BELT_IMG.y*sy, bIm.width*sx, bIm.height*sy);
     const ep = beltPos(ENTRY_S);
     ctx.fillStyle = '#ffd36a'; ctx.beginPath();
     ctx.moveTo(ep.x-10, ep.y+30); ctx.lineTo(ep.x, ep.y+21); ctx.lineTo(ep.x+10, ep.y+30); ctx.closePath(); ctx.fill();
@@ -646,7 +652,7 @@ function drawKitchen(S){
   if (IMG.chef){
     const sz = 112, sway = Math.sin(t*2)*0.03, chop = Math.abs(Math.sin(t*9))*4;
     ctx.save(); ctx.translate(cx, iy+ih-8 + chop*0.3); ctx.rotate(sway);
-    drawSprite('chef', -sz/2, -sz+6, sz, sz);
+    drawSprite(decoKey('chef'), -sz/2, -sz+6, sz, sz);
     ctx.restore();
   }
   // planche avec poissons (seulement sans l'image du tapis, qui a déjà sa cuisine)
@@ -778,5 +784,6 @@ function drawLeaving(L){
 }
 requestAnimationFrame(tick);
 </script>
+<script src="menus.js"></script>
 </body>
 </html>
