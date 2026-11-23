@@ -331,7 +331,7 @@ function update(dt){
   S.seats.forEach((c,i) => {
     if (!c || c.got >= c.n) return;
     const seatS = SEATS[i].s;
-    const idx = S.belt.findIndex(it => it.k>=1 && it.t===c.t && Math.abs(gap(it.s+S.offset, seatS)) < 6);
+    const idx = S.belt.findIndex(it => it.k>=1 && it.t===c.t && Math.abs(gap(it.s+S.offset, seatS)) < Math.max(6, (S.lastStep||0)/2 + 1));
     if (idx >= 0){
       const it = S.belt.splice(idx,1)[0], p = beltPos(it.s+S.offset), q = seatPos(i);
       S.flying.push({t:it.t, x:p.x, y:p.y, tx:q.x, ty:q.y, k:0});
@@ -396,7 +396,11 @@ function placeOnBelt(S, p){
 function moveBelt(S, dt){
   const n = S.belt.length;
   if (!n) return;
-  const step = SPEED*dt, P = PERIM;
+  // colonnes vides : il ne reste qu'à attendre les clients, le tapis accélère peu à peu (jusqu'à x3)
+  const rush = S.cols.every(c => !c.length) && !S.pending.length;
+  S.boost = rush ? Math.min(3, (S.boost||1) + dt*1.5) : 1;
+  const step = SPEED*S.boost*dt, P = PERIM;
+  S.lastStep = step;
   const w = S.belt.map(it => ((it.s % P) + P) % P);
   const order = [...w.keys()].sort((a,b) => w[a] - w[b]);           // du plus en arrière au plus en avant
   const ahead = k => order[(k+1) % n];
