@@ -145,12 +145,29 @@ function drawButton(x, y, w, h, label, size, press){
   ctx.fillStyle = '#5a2e12'; ctx.font = `800 ${size||20}px system-ui`;
   ctx.fillText(label, x + w/2, yy + h/2 + (size||20)*0.36);
 }
-function drawStar(x, y, r, on){
+// étoile de jeu : pointes arrondies, contour brun épais, dégradé doré, reflet ; éteinte = creux sombre
+function starPath(x, y, r){
   ctx.beginPath();
-  for (let k=0;k<10;k++){ const rr = k%2 ? r*0.45 : r, a = -Math.PI/2 + k*Math.PI/5; ctx.lineTo(x+Math.cos(a)*rr, y+Math.sin(a)*rr); }
+  for (let k=0;k<10;k++){ const rr = k%2 ? r*0.5 : r, a = -Math.PI/2 + k*Math.PI/5; ctx.lineTo(x+Math.cos(a)*rr, y+Math.sin(a)*rr); }
   ctx.closePath();
-  ctx.fillStyle = on ? '#ffd36a' : 'rgba(255,255,255,0.28)'; ctx.fill();
-  if (on){ ctx.strokeStyle = '#b07a10'; ctx.lineWidth = Math.max(1, r*0.12); ctx.stroke(); }
+}
+function drawStar(x, y, r, on){
+  ctx.save(); ctx.lineJoin = 'round';
+  const ow = Math.max(2, r*0.28);
+  // ombre portée
+  starPath(x, y + r*0.14, r); ctx.fillStyle = 'rgba(40,20,8,0.55)'; ctx.lineWidth = ow; ctx.strokeStyle = 'rgba(40,20,8,0.55)'; ctx.fill(); ctx.stroke();
+  starPath(x, y, r);
+  ctx.lineWidth = ow; ctx.strokeStyle = on ? '#6a3410' : 'rgba(40,20,8,0.75)'; ctx.stroke();
+  if (on){
+    const g = ctx.createLinearGradient(0, y - r, 0, y + r);
+    g.addColorStop(0, '#fff6b0'); g.addColorStop(0.45, '#ffd23c'); g.addColorStop(1, '#e88a10');
+    ctx.fillStyle = g; ctx.fill();
+    // reflet
+    ctx.save(); starPath(x, y, r); ctx.clip();
+    ctx.fillStyle = 'rgba(255,255,255,0.55)'; ctx.beginPath(); ctx.ellipse(x - r*0.2, y - r*0.38, r*0.42, r*0.2, -0.5, 0, 7); ctx.fill();
+    ctx.restore();
+  } else { ctx.fillStyle = 'rgba(60,35,15,0.6)'; ctx.fill(); }
+  ctx.restore();
 }
 function drawTitleText(text, x, y, size){
   ctx.font = `900 ${size}px system-ui`; ctx.lineJoin = 'round';
@@ -240,7 +257,7 @@ function drawMap(){
       ctx.beginPath(); ctx.arc(it.x, it.y, r, 0, 7); ctx.fill();
       ctx.strokeStyle = '#5a2e12'; ctx.lineWidth = 4; ctx.stroke();
       ctx.fillStyle = lock ? '#4a3a2a' : '#5a2e12'; ctx.font = '900 22px system-ui'; ctx.fillText(it.n, it.x, it.y+8);
-      if (!lock && !cur){ const st = SAVE.stars[it.n]||0; for (let k=0;k<3;k++) drawStar(it.x-16+k*16, it.y-r-6, 7, k < st); }
+      if (!lock && !cur){ const st = SAVE.stars[it.n]||0; for (let k=0;k<3;k++) drawStar(it.x-21+k*21, it.y-r-9, 10, k < st); }
     }
   });
   ctx.restore();
