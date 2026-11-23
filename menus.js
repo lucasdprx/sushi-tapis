@@ -59,7 +59,7 @@ const SHOP_BONUS = [
 ];
 
 // ---------- état des écrans ----------
-const MENU = {scene: SAVE.seen ? 'map' : 'title', t: 0, scroll: 0, open: 0, tab: 'bonus', end: null, shake: 0, drag: null};
+const MENU = {scene: 'title',   // T1 : l'écran titre à chaque ouverture t: 0, scroll: 0, open: 0, tab: 'bonus', end: null, shake: 0, drag: null};
 MENU.open = restoOf(SAVE.level);
 
 function startLevel(n){
@@ -111,7 +111,7 @@ function drawCoinsBox(x, y, n, pulse){
 }
 function drawCoinsHud(S){ drawCoinsBox(358, 22, SAVE.coins, MENU.coinPulse); }
 
-// ---------- étoiles (par défaut S4 : une étoile par objectif, en attente du tour 2) ----------
+// ---------- étoiles (S4 : une étoile par objectif) ----------
 const STAR_TIME = 300;   // secondes
 function starsOf(S){
   const time = (performance.now() - S.t0) / 1000;
