@@ -13,15 +13,53 @@
 <canvas id="c"></canvas>
 <script>
 const W = 400, H = 720;
-const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+const cv = document.getElementById('c');
+let ctx = cv.getContext('2d', {alpha: false});
+let SCALE = 1, layersDirty = true;
 function fit(){
   const s = Math.min(innerWidth / W, innerHeight / H);
   const dpr = devicePixelRatio || 1;
   cv.style.width = W * s + 'px'; cv.style.height = H * s + 'px';
-  cv.width = W * s * dpr; cv.height = H * s * dpr;
-  ctx.setTransform(s * dpr, 0, 0, s * dpr, 0, 0);
+  cv.width = Math.round(W * s * dpr); cv.height = Math.round(H * s * dpr);
+  SCALE = cv.width / W;
+  ctx.setTransform(SCALE, 0, 0, SCALE, 0, 0);
+  SPRITES.clear(); layersDirty = true;
 }
-addEventListener('resize', fit); fit();
+// ---------- performance ----------
+// Les images sont réduites une seule fois à leur taille d'affichage (en pixels réels de l'écran),
+// puis recopiées telles quelles à chaque image : la carte graphique n'a plus à réduire
+// de grosses images 60 fois par seconde.
+const SPRITES = new Map();
+function drawSprite(key, x, y, w, h){
+  const im = IMG[key]; if (!im) return false;
+  const pw = Math.max(1, Math.round(w*SCALE/2)*2), ph = Math.max(1, Math.round(h*SCALE/2)*2);  // tailles arrondies : peu de copies
+  const id = key + '|' + pw + 'x' + ph;
+  let c = SPRITES.get(id);
+  if (!c){
+    if (SPRITES.size > 400) SPRITES.clear();
+    c = document.createElement('canvas'); c.width = pw; c.height = ph;
+    const g = c.getContext('2d'); g.imageSmoothingQuality = 'high';
+    g.drawImage(im, 0, 0, pw, ph);
+    SPRITES.set(id, c);
+  }
+  ctx.drawImage(c, x, y, w, h);
+  return true;
+}
+// décor fixe (fond, plateaux des colonnes, tapis) dessiné une fois dans des calques
+const LAYER = {};
+function layer(name, paint){
+  let c = LAYER[name];
+  if (!c || layersDirty || c.width !== cv.width || c.height !== cv.height){
+    c = LAYER[name] = c || document.createElement('canvas');
+    c.width = cv.width; c.height = cv.height;
+    const g = c.getContext('2d'), keep = ctx;
+    g.setTransform(SCALE, 0, 0, SCALE, 0, 0); g.imageSmoothingQuality = 'high';
+    g.clearRect(0, 0, W, H);
+    ctx = g; paint(); ctx = keep;
+  }
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(c, 0, 0); ctx.setTransform(SCALE, 0, 0, SCALE, 0, 0);
+}
+addEventListener('resize', fit);
 
 // ---------- types de sushis ----------
 const TYPES = [
@@ -37,7 +75,8 @@ const TYPES = [
 ];
 // ---------- images ----------
 const IMG = {};
-function loadImg(key, src){ const im = new Image(); im.onload = () => IMG[key] = im; im.src = src; }
+function loadImg(key, src){ const im = new Image(); im.onload = () => { IMG[key] = im; layersDirty = true; SPRITES.clear(); }; im.src = src; }
+fit();
 TYPES.forEach((_,t) => loadImg('sushi'+t, `assets/sushi${t}.png`));
 for (let k=0;k<4;k++) loadImg('client'+k, `assets/client${k}.png`);
 loadImg('chef', 'assets/chef0.png');
@@ -48,7 +87,7 @@ loadImg('button', 'assets/button.png');
 
 function drawSushi(t, x, y, r){
   const im = IMG['sushi'+t];
-  if (im){ const s = r*2.7; ctx.drawImage(im, x-s/2, y-s/2, s, s); return; }
+  if (im){ const s = r*2.7; drawSprite('sushi'+t, x-s/2, y-s/2, s, s); return; }
   const T = TYPES[t];
   const ink = '#3a2416';
   ctx.save(); ctx.translate(x, y);
@@ -301,9 +340,14 @@ function sfx(kind){
 
 // ---------- boucle ----------
 let last = performance.now();
+const FPS = {v:60, on:false};
+addEventListener('keydown', e => { if (e.key === 'f' || e.key === 'F') FPS.on = !FPS.on; });
 function tick(now){
   const dt = Math.min(0.05, (now-last)/1000); last = now;
   update(dt); updateFx(dt); draw();
+  // compteur d'images par seconde : touche F
+  FPS.v = FPS.v*0.95 + (1/Math.max(1e-3,(now - (FPS.last||now)) / 1000 || 60))*0.05; FPS.last = now;
+  if (FPS.on){ ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(4,4,58,20); ctx.fillStyle = '#7f7'; ctx.font = 'bold 13px system-ui'; ctx.textAlign = 'left'; ctx.fillText(Math.round(FPS.v)+' i/s', 9, 19); ctx.textAlign = 'center'; }
   requestAnimationFrame(tick);
 }
 function update(dt){
@@ -424,7 +468,7 @@ function seatPos(i){
 // ---------- dessin ----------
 function draw(){
   const S = state;
-  drawBackground();
+  layer('bg', () => { drawBackground(); for (let i=0;i<COL.n;i++){ const rc = colRect(i); if (IMG.column) drawColumnTray(rc.x+3, rc.y, rc.w-6, rc.h); } });
 
   // compteur clients servis
   ctx.textAlign = 'center';
@@ -438,7 +482,8 @@ function draw(){
   // clients (derrière le tapis pour ceux du haut)
   S.seats.forEach((c,i) => { if (seatPos(i).y < BELT.y) drawCustomer(S, c, i); });
 
-  drawBelt(S);
+  layer('belt', () => drawBelt(S));
+  layersDirty = false;
   drawKitchen(S);
 
   // sushis sur le tapis
@@ -474,8 +519,7 @@ function draw(){
   const sx = S.shake ? (Math.random()-0.5)*6 : 0;
   for (let i=0;i<COL.n;i++){
     const rc = colRect(i), cx = rc.x+rc.w/2+sx;
-    if (IMG.column) drawColumnTray(rc.x+3+sx, rc.y, rc.w-6, rc.h);
-    else {
+    if (!IMG.column){
       ctx.fillStyle = '#7a4a28'; roundRect(rc.x+4+sx,rc.y,rc.w-8,rc.h,10); ctx.fill();
       ctx.fillStyle = '#a8703f'; roundRect(rc.x+8+sx,rc.y+4,rc.w-16,rc.h-8,8); ctx.fill();
     }
@@ -493,8 +537,7 @@ function draw(){
     const on = S.bonus[i] > 0, pr = S.press[i];
     const o = {x:o0.x, y:o0.y + Math.sin(pr*Math.PI)*4, icon:o0.icon};
     ctx.globalAlpha = on ? 1 : 0.4;
-    if (IMG.button) ctx.drawImage(IMG.button, o.x-BS/2-3, o.y-BS/2-3, BS+6, BS+8);
-    else {
+    if (!drawSprite('button', o.x-BS/2-3, o.y-BS/2-3, BS+6, BS+8)){
       ctx.fillStyle = '#3a2416'; roundRect(o.x-BS/2, o.y-BS/2+3, BS, BS, 12); ctx.fill();
       ctx.fillStyle = on ? '#ffd36a' : '#d8c8a8'; roundRect(o.x-BS/2, o.y-BS/2, BS, BS, 12); ctx.fill();
     }
@@ -603,7 +646,7 @@ function drawKitchen(S){
   if (IMG.chef){
     const sz = 112, sway = Math.sin(t*2)*0.03, chop = Math.abs(Math.sin(t*9))*4;
     ctx.save(); ctx.translate(cx, iy+ih-8 + chop*0.3); ctx.rotate(sway);
-    ctx.drawImage(IMG.chef, -sz/2, -sz+6, sz, sz);
+    drawSprite('chef', -sz/2, -sz+6, sz, sz);
     ctx.restore();
   }
   // planche avec poissons (seulement sans l'image du tapis, qui a déjà sa cuisine)
@@ -629,7 +672,7 @@ function drawCustomer(S, c, i){
     const base = q.y < BELT.y ? BELT.y-14 : q.y+30;
     ctx.save(); ctx.translate(q.x, base - hop); ctx.scale(sc*sx, sc*sy*breathe);
     if (happy) ctx.rotate(Math.sin(t*14)*0.08);
-    ctx.drawImage(im, -39, -78, 78, 78);
+    drawSprite('client'+(c.look%4), -39, -78, 78, 78);
     ctx.restore();
     return;
   }
@@ -730,7 +773,7 @@ function drawLeaving(L){
   const k = L.k, up = q.y < BELT.y;
   ctx.globalAlpha = 1-k;
   const base = up ? BELT.y-14 : q.y+30;
-  ctx.drawImage(im, q.x-39, base-78 + (up ? -k*30 : k*30), 78, 78);
+  drawSprite('client'+(L.look%4), q.x-39, base-78 + (up ? -k*30 : k*30), 78, 78);
   ctx.globalAlpha = 1;
 }
 requestAnimationFrame(tick);
