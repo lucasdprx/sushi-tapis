@@ -186,14 +186,14 @@ function levelConfig(n){
   // réglé par simulation : taper au hasard ou vider les colonnes une par une perd,
   // envoyer ce que les clients attendent (et savoir attendre) gagne
   return {
-    customers: 48 + 4*n,                       // ~320 sushis au niveau 1
+    customers: Math.min(72, 48 + 4*n),         // ~320 aliments au niveau 1, plafonné pour rester vers 5 min
     types: Math.min(TYPES.length, 6 + n),
     bonus: 2,
-    early: 0.35 + 0.05*n,                      // part des paquets posés plus haut que leur client
-    reachMin: 3, reach: 6 + n,                 // de combien de clients ils remontent (min, écart)
+    early: Math.min(0.5, 0.35 + 0.05*n),                      // part des paquets posés plus haut que leur client
+    reachMin: 3, reach: Math.min(12, 6 + n),                 // de combien de clients ils remontent (min, écart)
     palette: 4,                                // sortes demandées en ce moment ; elle change peu à peu
-    late: [0, 0, 12 + 2*n, 24 + 4*n, 36 + 6*n], // colonnes « en retard » : leur haut sert seulement à partir de ce client
-    capacity: Math.max(28, 33 - n),            // place sur le tapis (32 au niveau 1)
+    late: [0, 0, 0.25, 0.5, 0.75].map(f => Math.round(f * Math.min(72, 48 + 4*n) * (1 + Math.min(n, 6)*0.02))), // colonnes « en retard » : leur haut sert seulement à partir de ce client
+    capacity: Math.max(30, 33 - n),            // place sur le tapis (32 au niveau 1)
   };
 }
 // Les colonnes sont construites à partir des commandes, comme dans la pub :
@@ -345,13 +345,16 @@ let last = performance.now();
 const FPS = {v:60, on:false};
 addEventListener('keydown', e => { if (e.key === 'f' || e.key === 'F') FPS.on = !FPS.on; });
 function tick(now){
+  requestAnimationFrame(tick);   // en premier : une erreur dans une image n'arrête pas le jeu
   const dt = Math.min(0.05, (now-last)/1000); last = now;
+  try { frame(now, dt); } catch(e){ console.error(e); window.__lastErr = e; }
+}
+function frame(now, dt){
   if (MENU.scene === 'game'){ update(dt); updateFx(dt); draw(); if (state.over) levelOver(); }
   else { updateFx(dt); drawMenu(dt); }
   // compteur d'images par seconde : touche F
   FPS.v = FPS.v*0.95 + (1/Math.max(1e-3,(now - (FPS.last||now)) / 1000 || 60))*0.05; FPS.last = now;
   if (FPS.on){ ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(4,4,58,20); ctx.fillStyle = '#7f7'; ctx.font = 'bold 13px system-ui'; ctx.textAlign = 'left'; ctx.fillText(Math.round(FPS.v)+' i/s', 9, 19); ctx.textAlign = 'center'; }
-  requestAnimationFrame(tick);
 }
 function update(dt){
   const S = state;

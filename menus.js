@@ -59,7 +59,8 @@ const SHOP_BONUS = [
 ];
 
 // ---------- état des écrans ----------
-const MENU = {scene: 'title',   // T1 : l'écran titre à chaque ouverture t: 0, scroll: 0, open: 0, tab: 'bonus', end: null, shake: 0, drag: null};
+// T1 : l'écran titre à chaque ouverture
+const MENU = {scene: 'title', t: 0, scroll: 0, open: 0, tab: 'bonus', end: null, shake: 0, drag: null};
 MENU.open = restoOf(SAVE.level);
 
 function startLevel(n){
