@@ -331,8 +331,8 @@ function drawEnd(dt){
     lines.forEach((l, k) => { ctx.fillStyle = E.got[k] ? '#fff' : 'rgba(255,255,255,0.5)'; ctx.fillText((E.got[k] ? '✓ ' : '✗ ') + l, W/2, 292 + k*22); });
   }
   [0,2,3].forEach((c, i) => { const hop = E.win ? Math.abs(Math.sin(E.t*6 + i))*8 : 0; drawSprite('client'+c, 22 + i*122, 372 - hop - (i===1?14:0), 112, 112); });
-  ctx.fillStyle = '#fff'; ctx.font = '900 34px system-ui';
-  drawCoin(W/2 - 46, 538, 15); ctx.textAlign = 'left'; ctx.fillText('+' + Math.min(E.coins, Math.floor(E.t*60)), W/2 - 24, 550); ctx.textAlign = 'center';
+  drawCoin(W/2 - 46, 538, 15);
+  ctx.fillStyle = '#fff'; ctx.font = '900 34px system-ui'; ctx.textAlign = 'left'; ctx.fillText('+' + Math.min(E.coins, Math.floor(E.t*60)), W/2 - 24, 550); ctx.textAlign = 'center';
   drawButton(30, 600, 160, 66, '↻ Rejouer', 20);
   drawButton(210, 600, 160, 66, E.win ? 'Suivant' : 'Carte', 20);
 }
