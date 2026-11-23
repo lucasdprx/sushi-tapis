@@ -172,6 +172,7 @@ function drawIconButton(x, y, kind){
   ctx.save(); ctx.strokeStyle = '#5a2e12'; ctx.fillStyle = '#5a2e12'; ctx.lineWidth = 2.6; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
   if (kind === 'cart'){ ctx.beginPath(); ctx.moveTo(x-11,y-8); ctx.lineTo(x-7,y-8); ctx.lineTo(x-4,y+5); ctx.lineTo(x+8,y+5); ctx.lineTo(x+10,y-4); ctx.lineTo(x-6,y-4); ctx.stroke(); ctx.beginPath(); ctx.arc(x-3,y+10,2,0,7); ctx.arc(x+7,y+10,2,0,7); ctx.fill(); }
   else if (kind === 'back'){ ctx.beginPath(); ctx.moveTo(x+4,y-9); ctx.lineTo(x-5,y); ctx.lineTo(x+4,y+9); ctx.stroke(); }
+  else if (kind === 'pause'){ roundRect(x-7, y-9, 5, 18, 1.5); ctx.fill(); roundRect(x+2, y-9, 5, 18, 1.5); ctx.fill(); }
   else { // son
     ctx.beginPath(); ctx.moveTo(x-10,y-4); ctx.lineTo(x-5,y-4); ctx.lineTo(x+1,y-10); ctx.lineTo(x+1,y+10); ctx.lineTo(x-5,y+4); ctx.lineTo(x-10,y+4); ctx.closePath(); ctx.fill();
     if (SAVE.sound){ ctx.beginPath(); ctx.arc(x+2,y,6,-0.8,0.8); ctx.stroke(); ctx.beginPath(); ctx.arc(x+2,y,11,-0.8,0.8); ctx.stroke(); }
@@ -343,6 +344,43 @@ function endTap(x, y){
   else if (MENU.end.win && MENU.end.level + 1 <= RESTOS.length*PER_RESTO) startLevel(MENU.end.level + 1);
   else MENU.scene = 'map';
 }
+
+// ---------- pause en partie : reprendre ou revenir à la carte ----------
+const PAUSE_BTN = {x: 26, y: 24};
+MENU.paused = false;
+const _update = update;
+update = function(dt){ if (!MENU.paused) _update(dt); };
+const _draw = draw;
+draw = function(){
+  _draw();
+  if (MENU.scene !== 'game' || state.over) return;
+  ctx.textAlign = 'center';
+  if (!MENU.paused){ drawIconButton(PAUSE_BTN.x, PAUSE_BTN.y, 'pause'); return; }
+  ctx.fillStyle = 'rgba(30,18,10,0.7)'; ctx.fillRect(0, 0, W, H);
+  drawTitleText('PAUSE', W/2, 250, 52);
+  drawButton(90, 310, 220, 70, 'Reprendre', 24);
+  drawButton(90, 400, 220, 70, 'Carte', 24);
+};
+function pauseTap(x, y){
+  if (!MENU.paused){
+    if (Math.hypot(x - PAUSE_BTN.x, y - PAUSE_BTN.y) > 24) return false;
+    MENU.paused = true; MENU.pausedAt = performance.now(); sfx('tap'); return true;
+  }
+  if (x > 90 && x < 310 && y > 310 && y < 380){          // reprendre : le temps de pause ne compte pas pour l'étoile « vite »
+    state.t0 += performance.now() - MENU.pausedAt; MENU.paused = false; sfx('tap');
+  } else if (x > 90 && x < 310 && y > 400 && y < 470){   // carte : la partie est abandonnée, les pièces gagnées sont gardées
+    MENU.paused = false; saveGame(); MENU.open = restoOf(level); MENU.scene = 'map'; sfx('tap');
+  }
+  return true;
+}
+// avant le clic du jeu (index.html) : pendant une partie, le bouton pause et l'écran de pause passent en premier
+cv.addEventListener('pointerdown', e => {
+  if (MENU.scene !== 'game' || state.over) return;
+  const b = cv.getBoundingClientRect();
+  const x = (e.clientX-b.left)/b.width*W, y = (e.clientY-b.top)/b.height*H;
+  if (pauseTap(x, y)) e.stopImmediatePropagation();
+}, true);
+addEventListener('keydown', e => { if (e.key === 'Escape' && MENU.scene === 'game' && !state.over && !MENU.paused){ MENU.paused = true; MENU.pausedAt = performance.now(); } });
 
 // ---------- routage ----------
 function drawMenu(dt){

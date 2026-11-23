@@ -350,6 +350,7 @@ function tick(now){
   try { frame(now, dt); } catch(e){ console.error(e); window.__lastErr = e; }
 }
 function frame(now, dt){
+  if (typeof MENU === 'undefined') return;   // menus.js pas encore chargé
   if (MENU.scene === 'game'){ update(dt); updateFx(dt); draw(); if (state.over) levelOver(); }
   else { updateFx(dt); drawMenu(dt); }
   // compteur d'images par seconde : touche F
