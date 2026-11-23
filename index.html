@@ -75,7 +75,8 @@ const TYPES = [
 ];
 // ---------- images ----------
 const IMG = {};
-function loadImg(key, src){ const im = new Image(); im.onload = () => { IMG[key] = im; layersDirty = true; SPRITES.clear(); }; im.src = src; }
+const ASSET_V = 2;   // à augmenter quand une image change : force le rechargement chez les joueurs
+function loadImg(key, src){ const im = new Image(); im.onload = () => { IMG[key] = im; layersDirty = true; SPRITES.clear(); }; im.src = src + '?v=' + ASSET_V; }
 fit();
 TYPES.forEach((_,t) => loadImg('sushi'+t, `assets/sushi${t}.png`));
 for (let k=0;k<4;k++) loadImg('client'+k, `assets/client${k}.png`);
@@ -788,6 +789,6 @@ function drawLeaving(L){
 }
 requestAnimationFrame(tick);
 </script>
-<script src="menus.js"></script>
+<script src="menus.js?v=2"></script>
 </body>
 </html>
