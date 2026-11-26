@@ -21,6 +21,10 @@ Même style. Image verticale 9:16 de fond pour jeu mobile, SANS personnage, SANS
 
 Même style. Fond blanc uni. 9 plats mexicains vus de 3/4 dessus, rangés en grille de 3 rangées de 3, même taille, beaucoup d'espace blanc entre eux, sans chevauchement, sans texte, sans ombre au sol : 1) taco au bœuf, 2) taco au poulet, 3) burrito, 4) nachos au fromage, 5) bol de guacamole, 6) quesadilla, 7) piment rouge, 8) épi de maïs grillé, 9) empanada.
 
+## 6. Burger (fait : assets/r4)
+
+Aliments : cheeseburger, frites, hot-dog, milkshake fraise, pancakes, rondelles d oignon, soda bleu, cornichon, pilon de poulet. Salle : diner années 50, rouge et crème, damier, juke-box.
+
 ## 5. Salle des Tacos
 
 Même style. Image verticale 9:16 de fond pour jeu mobile, SANS personnage, SANS texte : intérieur coloré d'une taqueria mexicaine vue de face, murs orange et turquoise, fanions papel picado, cactus en pot et sombreros accrochés en haut à gauche et à droite ; la moitié basse est un comptoir en bois clair vide (pour l'interface du jeu). Doux, un peu flou, pas trop détaillé.
