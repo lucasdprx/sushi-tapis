@@ -24,6 +24,9 @@ const RESTOS = [
   {name: 'Pâtisserie'},
   {name: 'Tacos'},
   {name: 'Burger'},
+  {name: 'Chinois'},
+  {name: 'Indien'},
+  {name: 'Kebab'},
 ];
 const PER_RESTO = 10;
 let RESTO = 0;
@@ -238,7 +241,7 @@ function drawMap(){
       ctx.save(); roundRect(x, it.y, w, it.h, 16); ctx.clip();
       const im = IMG[it.k ? `r${it.k}bg` : 'bg'] || IMG.bg;
       if (im){ const s = w/im.width; ctx.filter = open ? 'none' : 'grayscale(1) brightness(0.5)'; ctx.drawImage(im, 0, im.height*0.18, im.width, it.h/s, x, it.y, w, it.h); ctx.filter = 'none'; }
-      if (!IMG[`r${it.k}bg`] && it.k){ ctx.fillStyle = ['','rgba(200,60,40,0.35)','rgba(230,120,180,0.35)','rgba(80,160,60,0.35)','rgba(200,40,50,0.35)'][it.k]; ctx.fillRect(x, it.y, w, it.h); }
+      if (!IMG[`r${it.k}bg`] && it.k){ ctx.fillStyle = ['','rgba(200,60,40,0.35)','rgba(230,120,180,0.35)','rgba(80,160,60,0.35)','rgba(200,40,50,0.35)','rgba(180,30,30,0.35)','rgba(230,140,30,0.35)','rgba(40,90,180,0.35)'][it.k]; ctx.fillRect(x, it.y, w, it.h); }
       const g = ctx.createLinearGradient(0, it.y+it.h-60, 0, it.y+it.h); g.addColorStop(0,'rgba(0,0,0,0)'); g.addColorStop(1,'rgba(0,0,0,0.6)');
       ctx.fillStyle = g; ctx.fillRect(x, it.y, w, it.h);
       ctx.restore();

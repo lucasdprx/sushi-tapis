@@ -28,3 +28,10 @@ Aliments : cheeseburger, frites, hot-dog, milkshake fraise, pancakes, rondelles 
 ## 5. Salle des Tacos
 
 Même style. Image verticale 9:16 de fond pour jeu mobile, SANS personnage, SANS texte : intérieur coloré d'une taqueria mexicaine vue de face, murs orange et turquoise, fanions papel picado, cactus en pot et sombreros accrochés en haut à gauche et à droite ; la moitié basse est un comptoir en bois clair vide (pour l'interface du jeu). Doux, un peu flou, pas trop détaillé.
+
+## 7. Chinois, Indien, Kebab (faits : assets/r5, r6, r7)
+
+Chinois : raviolis vapeur, rouleau de printemps, riz cantonais, boîte de nouilles, canard laqué, bao, biscuit de la fortune, thé vert, litchis. Salle : murs rouges, lanternes, paravent doré.
+Indien : curry, naan, samosa, riz basmati, lassi mangue, dosa, tandoori, palak paneer, gulab jamun. Salle : safran et violet, arches, lampes en cuivre.
+Kebab : pita kebab, falafels, houmous, salade grecque, souvlaki, baklava, olives, thé à la menthe, grenade. Salle : faïence bleue, broche, lampes orientales.
+Si Gemini répond « je ne suis qu'une IA basée sur du texte » : commencer par « Génère une image, » ou Réessayer.
